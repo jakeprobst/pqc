@@ -1,0 +1,6 @@
+[package]
+name = "pqc"
+version = "0.1.0"
+authors = ["Jake Probst <jake.probst@gmail.com>"]
+
+[dependencies]
