@@ -7,7 +7,8 @@ mod parser;
 
 
 fn main() {
-    let script = "(if (eq asd 3) (set asd 4) (thing asdf (+ 2 3) plus)) (npc +urmom+ (floor p2) (npc-say \"huehuehue\"))";
+    //let script = "(if (equal asd 3) (set asd 4) (set asd (+ 2 3))) (npc +urmom+ (floor p2) (npc-say \"huehuehue\"))";
+    let script = "(if (equal asd 3) (set asd 4) (set asd (+ 2 3)))";
     println!("{}", script);
         
 

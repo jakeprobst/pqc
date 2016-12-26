@@ -140,7 +140,10 @@ pub enum PExpr {
     Integer(u32),
     Variable(String),
     Register(Variable),
-    Assign(Variable, u32),
+    Assign(Box<PExpr>, Box<PExpr>),
+
+    // math
+    Plus(Box<PExpr>, Box<PExpr>),
 
     // general meta pso
     SetEpisode(u32),

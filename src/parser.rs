@@ -115,30 +115,135 @@ pub enum EvalError {
     Bleh,
     ExpectedOpenParen,
     UnexpectedFunction(String),
+    InvalidArgumentCount(String, usize, usize),
+    InvalidArgument(String, String),
 }
 
-fn eval_tokens(ast: &ASTree)-> Result<PExpr, EvalError> {
-
-
-    return Err(EvalError::Bleh);
-    /*if tokens[0] != "(" {
-        return Err(EvalError::ExpectedOpenParen);
-    }
-
-    match tokens[1] {
-        "if " => {
-        },
-        "npc" => {
-        },
-        _ = > {
-            return EvalError::UnexpectedFunction(tokens[1]);
+// TODO: better name for this
+macro_rules! allowed_types {
+    ($label:expr, $ast:expr, [ $( $t:path ),* ]) => {
+        {
+            let evalast = try!(eval_ast($ast));
+            match evalast {
+                $(
+                    $t(..) => 
+                        evalast,
+                    
+                )*
+                _ => {
+                    println!("bad! {:?}", evalast);
+                    return Err(EvalError::InvalidArgument(String::from($label),
+                                                   if let &ASTree::Node(ref fname, _) = $ast {
+                                                       fname.clone()
+                                                   } 
+                                                   else {
+                                                       String::new()
+                                                   }));
+                }
+            }
         }
     }
-    */
-    
-
-    
 }
+
+fn eval_ast(ast: &ASTree)-> Result<PExpr, EvalError> {
+    match ast {
+        &ASTree::Node(ref function, ref args) => {
+            match &function as &str {
+                "if" => {
+                    return eval_if(&args);
+                }
+                "equal" => {
+                    return eval_equal(&args);
+                }
+                "set" => {
+                    return eval_set(&args);
+                }
+                "+" => {
+                    return eval_plus(&args);
+                }
+                _ => {
+                    /*if let Ok(i) = function.parse::<u32>() {
+                        return Ok(PExpr::Integer(i));
+                    }
+                    return Ok(PExpr::Variable(function.clone()));*/
+                    unreachable!();
+
+                }
+            }
+        }
+        &ASTree::Value(ref val) => {
+            if let Ok(i) = val.parse::<u32>() {
+                return Ok(PExpr::Integer(i));
+            }
+            return Ok(PExpr::Variable(val.clone()));
+        }
+    }
+    //return 
+}
+
+fn eval_if(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
+    if args.len() != 3 {
+        return Err(EvalError::InvalidArgumentCount(String::from("if"), 3, args.len()));
+    }
+    println!("if: {:?}", args[0]);
+    //println!("if: {:?}", try!(eval_ast(&args[0])));
+
+    println!("y");
+    //let cond: Result<PExpr, EvalError>   = allowed_types!("if", &args[0], [PExpr::Equal]);
+    let cond = allowed_types!("if", &args[0], [PExpr::Equal]);
+    //let cond2 = try!(cond);
+    println!("z");
+    let btrue  = allowed_types!("if", &args[1], [PExpr::If, PExpr::Block, PExpr::Assign]);
+    let bfalse = allowed_types!("if", &args[2], [PExpr::If, PExpr::Block, PExpr::Assign]);
+
+    //return Err(EvalError::Bleh);
+    return Ok(PExpr::If(Box::new(cond), Box::new(btrue), Box::new(bfalse)));
+}
+
+fn eval_equal(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
+    println!("equal: {:?}", args);
+    if args.len() != 2 {
+        return Err(EvalError::InvalidArgumentCount(String::from("equal"), 2, args.len()));
+    }
+    println!("a: {:?}", try!(eval_ast(&args[0])));
+    println!("b: {:?}", try!(eval_ast(&args[1])));
+
+    let left  = allowed_types!("equal", &args[0], [PExpr::Integer, PExpr::Variable]);
+    //let a = allowed_types!("equal", &args[0], [PExpr::Integer, PExpr::Variable]);
+    println!("b");
+    let right = allowed_types!("equal", &args[1], [PExpr::Integer, PExpr::Variable]);
+    println!("c");
+
+    println!("l: {:?}", left);
+    println!("r: {:?}", right);
+
+    return Ok(PExpr::Equal(Box::new(left), Box::new(right)));
+}
+
+fn eval_set(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
+    if args.len() != 2 {
+        return Err(EvalError::InvalidArgumentCount(String::from("set"), 2, args.len()));
+    }
+
+    let var = allowed_types!("set", &args[0], [PExpr::Variable]);
+    let val = allowed_types!("set", &args[1], [PExpr::Integer, PExpr::Variable, PExpr::Plus]);
+
+    return Ok(PExpr::Assign(Box::new(var), Box::new(val)));
+    //return Err(EvalError::Bleh);
+}
+
+fn eval_plus(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
+    if args.len() != 2 {
+        return Err(EvalError::InvalidArgumentCount(String::from("+"), 2, args.len()));
+    }
+
+    let left  = allowed_types!("+", &args[0], [PExpr::Integer, PExpr::Variable]);
+    let right = allowed_types!("+", &args[1], [PExpr::Integer, PExpr::Variable]);
+
+    return Ok(PExpr::Plus(Box::new(left), Box::new(right)));
+    //return Err(EvalError::Bleh);
+}
+
 
 #[derive(Debug)]
 pub enum ScriptError {
@@ -166,13 +271,13 @@ pub fn eval_tokenized_expr(tokens: Vec<String>) -> Result<Vec<PExpr>, ScriptErro
     for ast in astblocks {
         let astree = try!(generate_ast(&ast));
         println!("astree: {:?}", astree);
-        result.push(try!(eval_tokens(&astree)));
+        result.push(try!(eval_ast(&astree)));
     }
 
     
     
     //result.push(PExpr::Equal(PExpr::Register(Variable {name: String::from("a"), register: PExpr::Register(Variable())}), PExpr::Value(19)));
-    result.push(PExpr::Equal(Box::new(PExpr::Integer(5)), Box::new(PExpr::Integer(29))));
+    //result.push(PExpr::Equal(Box::new(PExpr::Integer(5)), Box::new(PExpr::Integer(29))));
     //result.push(PExpr::Equal(PExpr::Integer(5), PExpr::Integer(29)));
     
 
