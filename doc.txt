@@ -1,0 +1,82 @@
+# pqs syntax!
+
+# set episode
+(set-episode 1)
+
+# helper function, creates shops+tekker+bank
+(make-pioneer2-shops 1)
+
+# select which floors the quest will use, they will be refered to in scripts later using the id specified
+(floors
+  (p2 pioneer2)
+  (f1 forest1-1)
+  (c1 caves1-3)
+  (c2 caves2-2))
+
+# sets where the players spawn on a given floor
+(player-set (floor f1)
+  (xyz 100 110 120)
+  (xyz 110 120 130)
+  (xyz 120 130 140)
+  (xyz 130 140 150))
+
+# executes on quest completion
+(quest-reward
+  (cond (get-difficulty)
+    (normal
+      (window-message "ez game")
+      (play-bgm 1)
+      (give-meseta 1000))
+    (hard
+      (window-message "ez game")
+      (play-bgm 1)
+      (give-meseta 2000))
+    (very-hard
+      (window-message "ez game")
+      (play-bgm 1)
+      (give-meseta 3000))
+    (ultimate
+      (window-message "ez game")
+      (play-bgm 1)
+      (give-meseta 4000))))
+
+# executes on quest failure
+(quest-failure
+  (window-message "game is hard"))
+
+# example npc dialogue
+(variable *talked-to-hopkins* false)
+
+(npc +hopkins+ (floor p2) (xyz 90 80 78)
+  (npc-action +hopkins+
+    (if *talked-to-hopkins*
+      (npc-say +hopkins+
+        "go away man")
+      (block
+        (npc-say +hopkins+
+          "hello!"
+          "here is some cool text!"
+          "and now I`m<CR>done")
+        (set *talked-to-hopkins* true)))))
+
+
+(make-collision (area c1) (xyz 10 20 30) (radius 80)
+  (collision-action
+    (start-spawn 1)))
+
+(door (area c1) (xyz 12 34 56) (skin normal))
+
+
+(wave 1
+  (spawn evil-shark (floor c1) (xyz 30 40 50))
+  (spawn evil-shark (floor c1) (xyz 35 45 55))
+  (spawn evil-shark (floor c1) (xyz 35 45 55))
+  (delay 10)
+  (next-wave 2))
+
+(wave 2
+  (spawn evil-shark (floor c1) (xyz 30 40 50))
+  (spawn evil-shark (floor c1) (xyz 35 45 55))
+  (spawn evil-shark (floor c1) (xyz 35 45 55))
+  (delay 10)
+  (unlock 12))

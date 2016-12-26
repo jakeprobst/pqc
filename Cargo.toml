@@ -4,3 +4,11 @@ version = "0.1.0"
 authors = ["Jake Probst <jake.probst@gmail.com>"]
 
 [dependencies]
+
+[lib]
+name = "pqc"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pqc"
+path = "src/bin.rs"
