@@ -39,15 +39,9 @@ pub enum SyntaxError {
     UnbalancedParens,
 }
 
-pub enum ASTType {
-    Identifier(String),
-    Expression(Vec<String>)
-}
-
 // TODO: figure out a proper name for this function
 // TODO: handle quotes
 fn split_into_ast_blocks(tokens: &Vec<String>) -> Result<Vec<Vec<String>>, SyntaxError> {
-    print!("split: {:?}", tokens);
     let mut result = Vec::new();
 
     let mut parencount = 0;
@@ -68,14 +62,10 @@ fn split_into_ast_blocks(tokens: &Vec<String>) -> Result<Vec<Vec<String>>, Synta
         }
     }
 
-    print!(" [{}] ", parencount);
-    
     if parencount != 0 {
         return Err(SyntaxError::UnbalancedParens);
     }
     
-    println!(" -> {:?}", result);
-
     return Ok(result);
 }
 
@@ -115,6 +105,7 @@ pub enum EvalError {
     Bleh,
     ExpectedOpenParen,
     UnexpectedFunction(String),
+    UnknownFunction(String),
     InvalidArgumentCount(String, usize, usize),
     InvalidArgument(String, String),
 }
@@ -128,94 +119,201 @@ macro_rules! allowed_types {
                 $(
                     $t(..) => 
                         evalast,
-                    
                 )*
-                _ => {
-                    println!("bad! {:?}", evalast);
-                    return Err(EvalError::InvalidArgument(String::from($label),
-                                                   if let &ASTree::Node(ref fname, _) = $ast {
-                                                       fname.clone()
-                                                   } 
-                                                   else {
-                                                       String::new()
-                                                   }));
-                }
+                    _ => {
+                        return Err(EvalError::InvalidArgument(String::from($label),
+                                                       if let &ASTree::Node(ref fname, _) = $ast {
+                                                           fname.clone()
+                                                       } 
+                                                       else {
+                                                           String::new()
+                                                       }));
+                    }
             }
         }
     }
 }
 
-fn eval_ast(ast: &ASTree)-> Result<PExpr, EvalError> {
+/*fn eval_ast(ast: &ASTree)-> Result<PExpr, EvalError> {
     match ast {
         &ASTree::Node(ref function, ref args) => {
             match &function as &str {
-                "if" => {
-                    return eval_if(&args);
-                }
-                "equal" => {
-                    return eval_equal(&args);
-                }
-                "set" => {
-                    return eval_set(&args);
-                }
-                "+" => {
-                    return eval_plus(&args);
-                }
-                _ => {
-                    /*if let Ok(i) = function.parse::<u32>() {
-                        return Ok(PExpr::Integer(i));
-                    }
-                    return Ok(PExpr::Variable(function.clone()));*/
-                    unreachable!();
+                "if" => eval_if(&args),
+                "equal" => eval_equal(&args),
+                "set" => eval_set(&args),
+                "+" => eval_plus(&args),
 
-                }
+                "set-episode" => eval_set_episode(&args),
+                
+                _ => Err(EvalError::UnknownFunction(function.clone())),
             }
         }
         &ASTree::Value(ref val) => {
             if let Ok(i) = val.parse::<u32>() {
-                return Ok(PExpr::Integer(i));
+                Ok(PExpr::Integer(i));
             }
-            return Ok(PExpr::Variable(val.clone()));
+            else {
+                Ok(PExpr::Variable(val.clone()));
+            }
         }
     }
-    //return 
-}
+}*/
 
-fn eval_if(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
+
+
+/*fn eval_if(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
     if args.len() != 3 {
         return Err(EvalError::InvalidArgumentCount(String::from("if"), 3, args.len()));
     }
-    println!("if: {:?}", args[0]);
-    //println!("if: {:?}", try!(eval_ast(&args[0])));
 
-    println!("y");
-    //let cond: Result<PExpr, EvalError>   = allowed_types!("if", &args[0], [PExpr::Equal]);
     let cond = allowed_types!("if", &args[0], [PExpr::Equal]);
-    //let cond2 = try!(cond);
-    println!("z");
     let btrue  = allowed_types!("if", &args[1], [PExpr::If, PExpr::Block, PExpr::Assign]);
     let bfalse = allowed_types!("if", &args[2], [PExpr::If, PExpr::Block, PExpr::Assign]);
 
-    //return Err(EvalError::Bleh);
+    return Ok(PExpr::If(Box::new(cond), Box::new(btrue), Box::new(bfalse)));
+}*/
+macro_rules! eval_statement {
+    ($name:tt, $typ:path, $args:expr, $len:expr, { $($var:ident: [$($t:path),*] ),* }) => {
+        $name => {
+            if $args.len() != $len {
+                Err(EvalError::InvalidArgumentCount(String::from($name), $len, $args.len()))
+            }
+            else {
+                let mut count = 0;
+                $(
+                    let $var = allowed_types!($name, &$args[count], [ $( $t ),*]);
+                    count += 1;
+                )*;
+                Ok($typ($(Box::new($var)),*))
+            }
+        }
+    }
+}
+
+macro_rules! eval_statement_match {
+    ($func:expr, $args:expr, {
+        $(
+            [$name:expr, $typ:path, $len:expr,
+             {
+                 $(
+                     $var:ident:
+                     [
+                         $(
+                             $t:path
+                         ),*
+                     ]
+                 ),*
+             }
+            ]
+        ),*
+    }) => {
+        {
+            match $func {
+                $(
+                    $name => {
+                        if $args.len() != $len {
+                            Err(EvalError::InvalidArgumentCount(String::from($name), $len, $args.len()))
+                        }
+                        else {
+                            let mut count = 0;
+                            $(
+                                let $var = allowed_types!($name, &$args[count], [ $( $t ),*]);
+                                count += 1;
+                            )*;
+                            Ok($typ($(Box::new($var)),*))
+                        }
+                    }
+                )*,
+                _ => Err(EvalError::UnknownFunction(String::from($func)))
+            }
+        }
+        
+    }
+}
+
+
+fn eval_ast(ast: &ASTree)-> Result<PExpr, EvalError> {
+    match ast {
+        &ASTree::Node(ref function, ref args) => {
+            /*eval_statement_match(function as &str, &args, {
+                ["if", PExpr::If, 3,
+                 {cond: [PExpr::Equal],
+                  btrue: [PExpr::If, PExpr::Block, PExpr::Assign],
+                  bfalse: [PExpr::If, PExpr::Block, PExpr::Assign]}],
+                ["equal", PExpr::Equal, 2,
+                 {left: [PExpr::Integer, PExpr::Variable],
+                  right: [PExpr::Integer, PExpr::Variable]}],
+        });*/
+            eval_statement_match!(function as &str, &args, {
+                ["if", PExpr::If, 3, {
+                    cond: [PExpr::Equal],
+                    btrue: [PExpr::If, PExpr::Block, PExpr::Set],
+                    bfalse: [PExpr::If, PExpr::Block, PExpr::Set]}],
+                ["equal", PExpr::Equal, 2, {
+                    left: [PExpr::Integer, PExpr::Variable],
+                    right: [PExpr::Integer, PExpr::Variable]
+                }],
+                ["set", PExpr::Set, 2, {
+                    var: [PExpr::Variable],
+                    val: [PExpr::Integer, PExpr::Variable, PExpr::Plus]
+                }],
+                ["+", PExpr::Plus, 2, {
+                    left: [PExpr::Integer, PExpr::Variable],
+                    right: [PExpr::Integer, PExpr::Variable]
+                }]
+            })
+            /*eval_statements!(&function, &args) {
+                
+            }*/
+            //match &function as &str {
+                /*eval_statement!("if", PExpr::If, &args, 3,
+                                {cond: [PExpr::Equal],
+                                 btrue: [PExpr::If, PExpr::Block, PExpr::Assign],
+                                 bfalse: [PExpr::If, PExpr::Block, PExpr::Assign]})*/
+                /*eval_statement!("equal", ast, 2, {left: [PExpr::Integer, PExpr::Variable],
+                                                  right: [PExpr::Integer, PExpr::Variable]}),
+                eval_statement!("set", ast, 3, {var: [PExpr::Integer, PExpr::Variable],
+                                                val: [PExpr::Integer, PExpr::Variable, PExpr::Plus]}),
+                eval_statement!("plus", ast, 2, {left: [PExpr::Integer, PExpr::Variable],
+                                                 right: [PExpr::Integer, PExpr::Variable]}),*/
+                //_ => Err(EvalError::UnknownFunction(function.clone())),
+            //}
+        }
+        &ASTree::Value(ref val) => {
+            if let Ok(i) = val.parse::<u32>() {
+                Ok(PExpr::Integer(i))
+            }
+            else {
+                Ok(PExpr::Variable(val.clone()))
+            }
+        }
+    }
+}
+
+/*eval_statement!(eval_if, "if", 3, {cond: [PExpr::Equal],
+                                   btrue: [PExpr::If, PExpr::Block, PExpr::Assign],
+                                   bfalse: [PExpr::If, PExpr::Block, PExpr::Assign]});
+*/
+
+/*fn eval_if(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
+    if args.len() != 3 {
+        return Err(EvalError::InvalidArgumentCount(String::from("if"), 3, args.len()));
+    }
+
+    let cond = allowed_types!("if", &args[0], [PExpr::Equal]);
+    let btrue  = allowed_types!("if", &args[1], [PExpr::If, PExpr::Block, PExpr::Assign]);
+    let bfalse = allowed_types!("if", &args[2], [PExpr::If, PExpr::Block, PExpr::Assign]);
+
     return Ok(PExpr::If(Box::new(cond), Box::new(btrue), Box::new(bfalse)));
 }
 
 fn eval_equal(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
-    println!("equal: {:?}", args);
     if args.len() != 2 {
         return Err(EvalError::InvalidArgumentCount(String::from("equal"), 2, args.len()));
     }
-    println!("a: {:?}", try!(eval_ast(&args[0])));
-    println!("b: {:?}", try!(eval_ast(&args[1])));
 
     let left  = allowed_types!("equal", &args[0], [PExpr::Integer, PExpr::Variable]);
-    //let a = allowed_types!("equal", &args[0], [PExpr::Integer, PExpr::Variable]);
-    println!("b");
     let right = allowed_types!("equal", &args[1], [PExpr::Integer, PExpr::Variable]);
-    println!("c");
-
-    println!("l: {:?}", left);
-    println!("r: {:?}", right);
 
     return Ok(PExpr::Equal(Box::new(left), Box::new(right)));
 }
@@ -229,7 +327,6 @@ fn eval_set(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
     let val = allowed_types!("set", &args[1], [PExpr::Integer, PExpr::Variable, PExpr::Plus]);
 
     return Ok(PExpr::Assign(Box::new(var), Box::new(val)));
-    //return Err(EvalError::Bleh);
 }
 
 fn eval_plus(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
@@ -241,8 +338,9 @@ fn eval_plus(args: &Vec<ASTree>) -> Result<PExpr, EvalError> {
     let right = allowed_types!("+", &args[1], [PExpr::Integer, PExpr::Variable]);
 
     return Ok(PExpr::Plus(Box::new(left), Box::new(right)));
-    //return Err(EvalError::Bleh);
 }
+*/
+//fn eval_set_episode(args:)
 
 
 #[derive(Debug)]

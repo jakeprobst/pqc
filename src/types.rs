@@ -140,7 +140,7 @@ pub enum PExpr {
     Integer(u32),
     Variable(String),
     Register(Variable),
-    Assign(Box<PExpr>, Box<PExpr>),
+    Set(Box<PExpr>, Box<PExpr>),
 
     // math
     Plus(Box<PExpr>, Box<PExpr>),
