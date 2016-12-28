@@ -134,29 +134,37 @@ pub struct Variable {
 #[derive(Debug)]
 pub enum PExpr {
     // general operations
-    If(Box<PExpr>, Box<PExpr>, Box<PExpr>), // if ($1) then $2 else $3
+    //If(Box<PExpr>, Box<PExpr>, Box<PExpr>), // if ($1) then $2 else $3
+    If(Vec<PExpr>),
     Block(Vec<PExpr>),
-    Equal(Box<PExpr>, Box<PExpr>),
+    //Equal(Box<PExpr>, Box<PExpr>),
+    Equal(Vec<PExpr>),
     Integer(u32),
-    Variable(String),
+    Identifier(String),
+    Array(Vec<PExpr>),
     Register(Variable),
-    Set(Box<PExpr>, Box<PExpr>),
+    //Set(Box<PExpr>, Box<PExpr>),
+    Set(Vec<PExpr>),
 
     // math
-    Plus(Box<PExpr>, Box<PExpr>),
+    //Plus(Box<PExpr>, Box<PExpr>),
+    Plus(Vec<PExpr>),
 
     // general meta pso
-    SetEpisode(u32),
-    Floors(Vec<PExpr>),
+    //SetEpisode(Box<PExpr>),
+    SetEpisode(Vec<PExpr>),
+    //SetFloors(Box<PExpr>),
+    SetFloor(Vec<PExpr>),
+    //FloorMapping(String, String),
 
     // npcs
-    NPC(String, Vec<PExpr>),
+    NPC(Vec<PExpr>),
 
     // doors
-    Door(String, Vec<PExpr>),
+    Door(Vec<PExpr>),
 
     // wave
-    Wave(String, Vec<PExpr>),
+    Wave(Vec<PExpr>),
 
     // monsters
     
