@@ -11,4 +11,4 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "pqc"
-path = "src/bin.rs"
+path = "src/main.rs"

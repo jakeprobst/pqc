@@ -1,5 +1,5 @@
 
-
+use std::fmt;
 
 
 
@@ -77,7 +77,7 @@ pub enum TowerLayout {
     Tower5,
 }
     
-pub enum Floor {
+pub enum FloorType {
     Pioneer2,
     Forest1,
     Forest2,
@@ -112,6 +112,11 @@ pub enum Floor {
     Tower(TowerLayout),
 }
 
+pub struct Floor {
+    label: String,
+    floor: FloorType,
+}
+
 pub struct Monster {
     pub mtype: MonsterType,
     pub floor: Floor,
@@ -133,32 +138,33 @@ pub struct Variable {
 
 #[derive(Debug)]
 pub enum PExpr {
-    // general operations
-    //If(Box<PExpr>, Box<PExpr>, Box<PExpr>), // if ($1) then $2 else $3
-    If(Vec<PExpr>),
-    Block(Vec<PExpr>),
-    //Equal(Box<PExpr>, Box<PExpr>),
-    Equal(Vec<PExpr>),
+    Noop,
     Integer(u32),
     Identifier(String),
-    Array(Vec<PExpr>),
-    Register(Variable),
-    //Set(Box<PExpr>, Box<PExpr>),
+    String(String),
+    // general operations
+    If(Vec<PExpr>),
+    Block(Vec<PExpr>),
+    Equal(Vec<PExpr>),
     Set(Vec<PExpr>),
 
     // math
-    //Plus(Box<PExpr>, Box<PExpr>),
     Plus(Vec<PExpr>),
+
+    // general
+    Position(Vec<PExpr>),
+    Floor(Vec<PExpr>),
 
     // general meta pso
     //SetEpisode(Box<PExpr>),
     SetEpisode(Vec<PExpr>),
-    //SetFloors(Box<PExpr>),
     SetFloor(Vec<PExpr>),
-    //FloorMapping(String, String),
+    PlayerSet(Vec<PExpr>),
+    QuestReward(Vec<PExpr>),
 
     // npcs
-    NPC(Vec<PExpr>),
+    Npc(Vec<PExpr>),
+    NpcSay(Vec<PExpr>),
 
     // doors
     Door(Vec<PExpr>),
@@ -170,6 +176,41 @@ pub enum PExpr {
     
 }
 
+macro_rules! print_expr {
+    ($f:expr, $func:expr, $args:expr) => {
+        {
+            write!($f, "(");
+            write!($f, $func);
+            for a in $args.iter() {
+                write!($f, " {}", a);
+            }
+            write!($f, ")")
+        }
+    }
+}
+
+
+impl fmt::Display for PExpr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            &PExpr::If(ref args) => print_expr!(f, "if", args),
+            &PExpr::Equal(ref args) => print_expr!(f, "equal", args),
+            &PExpr::Set(ref args) => print_expr!(f, "set", args),
+            &PExpr::Plus(ref args) => print_expr!(f, "+", args),
+            &PExpr::SetEpisode(ref args) => print_expr!(f, "set-episode", args),
+            
+            &PExpr::Integer(ref args) => {
+                write!(f, "{}", args)
+            },
+            &PExpr::Identifier(ref args) => {
+                write!(f, "{}", args)
+            },
+            _ => write!(f, "!!add {:?} to fmt::Display for PExpr!!", self),
+        }
+    }
+}
+
+
 pub struct Quest {
     pub episode: u32,
 
@@ -178,7 +219,7 @@ pub struct Quest {
     pub on_failure: PExpr,
 
     pub objects: Vec<Object>,
-    pub monsters: Vec<Monster>,
+    //pub monsters: Vec<Monster>,
     pub npcs: Vec<NPC>,
     pub waves: Vec<Wave>,
 }

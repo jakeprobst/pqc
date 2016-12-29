@@ -7,11 +7,10 @@
 (make-pioneer2-shops 1)
 
 # select which floors the quest will use, they will be refered to in scripts later using the id specified
-(floors
-  (p2 pioneer2)
-  (f1 forest1-1)
-  (c1 caves1-3)
-  (c2 caves2-2))
+(set-floor p2 pioneer2)
+(set-floor f1 forest1-1)
+(set-floor c1 caves1-3)
+(set-floor c2 caves2-2)
 
 # sets where the players spawn on a given floor
 (player-set (floor f1)
@@ -60,6 +59,12 @@
         (set *talked-to-hopkins* true)))))
 
 
+(on-floor-load (floor p2)
+  (npc-say +hopkins+
+    "welcome to p2!")
+)
+
+
 (make-collision (area c1) (xyz 10 20 30) (radius 80)
   (collision-action
     (start-spawn 1)))
@@ -67,14 +72,15 @@
 (door (area c1) (xyz 12 34 56) (skin normal))
 
 
-(wave 1
+
+(wave a1
   (spawn evil-shark (floor c1) (xyz 30 40 50))
   (spawn evil-shark (floor c1) (xyz 35 45 55))
   (spawn evil-shark (floor c1) (xyz 35 45 55))
   (delay 10)
-  (next-wave 2))
+  (next-wave a2))
 
-(wave 2
+(wave a2
   (spawn evil-shark (floor c1) (xyz 30 40 50))
   (spawn evil-shark (floor c1) (xyz 35 45 55))
   (spawn evil-shark (floor c1) (xyz 35 45 55))
