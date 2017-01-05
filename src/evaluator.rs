@@ -1,69 +1,232 @@
 use types::*;
-
-
-
-
-
-
+use std::fmt::Write;
 
 #[derive(Debug)]
 pub enum SyntaxError {
     UnknownFunction(String),
     InvalidFunction(String),
     InvalidNumberOfArguments(String, u32, usize),
-    InvalidArgument(String, String),
-    Error,
+    InvalidArgument(String, String, String),
 }
 
-fn eval_equal(quest: &mut Quest, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
-    println!("qqq!");
-    if args.len() != 2 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("equal"), 2, args.len()));
+// TODO: replace module_path with function_path once it exists
+macro_rules! expect_type {
+    ($arg:expr, $t:path) => {
+        match $arg {
+            $t(ref var) => Ok(var.clone()),
+            _ => {
+                Err(SyntaxError::InvalidArgument(String::from(module_path!()),
+                                                        $arg.to_string(),
+                                                        String::from("expected different type")))
+            }
+        }
     }
-    Ok(())
 }
 
-fn eval_set_episode(quest: &mut Quest, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
+// TODO: boolean variables?
+fn eval_variable(args: &Vec<PExpr>) -> Result<Variable, SyntaxError> {
+    if args.len() < 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("variable"), 1, args.len()));
+    }
+    
+    let name = try!(expect_type!(args[0], PExpr::Identifier));
+    let value = if args.len() == 2 {
+        match &args[1] {
+            &PExpr::Integer(ref v) => VariableValue::Integer(v.clone()),
+            &PExpr::Float(ref v) => VariableValue::Float(v.clone()),
+            &PExpr::StringLiteral(ref v) => VariableValue::String(v.clone()),
+            _ => return Err(SyntaxError::InvalidArgument(String::from("variable"), args[1].to_string(), String::from("invalid type")))
+        }
+    }
+    else {
+        VariableValue::None
+    };
+
+    Ok(Variable {
+        name: name,
+        value: value,
+    })
+}
+
+fn eval_set_episode(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("set-episode"), 1, args.len()));
     }
-    match args[0] {
-        PExpr::Integer(ep) => quest.episode = ep,
-        _ => return Err(SyntaxError::InvalidArgument(String::from("set-episode"), args[0].to_string()))
+    
+    expect_type!(args[0], PExpr::Integer)
+}
+
+// TODO: be more strict about this?
+fn eval_quest_success(args: &Vec<PExpr>) -> Result<PExpr, SyntaxError> {
+    if args.len() < 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("quest-success"), 1, args.len()));
     }
-    Ok(())
+
+    Ok(PExpr::Block(args.clone()))
+}
+
+fn eval_floor(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
+    }
+
+    expect_type!(args[0], PExpr::Identifier)
+}
+
+fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
+    if args.len() != 3 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("pos"), 3, args.len()));
+    }
+
+    let x = try!(expect_type!(args[0], PExpr::Integer));
+    let y = try!(expect_type!(args[1], PExpr::Integer));
+    let z = try!(expect_type!(args[2], PExpr::Integer));
+
+    Ok(Point{x:x as f32, y:y as f32, z:z as f32})
+}
+
+fn eval_direction(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("dir"), 1, args.len()));
+    }
+
+    expect_type!(args[0], PExpr::Integer)
+}
+
+// TODO: type -> enum
+// TODO: per-monster attributes
+fn eval_spawn(args: &Vec<PExpr>) -> Result<Monster, SyntaxError> {
+    if args.len() < 3 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("spawn"), 3, args.len()));
+    }
+
+    let mtype = try!(expect_type!(args[0], PExpr::Identifier));
+    let floor = try!(eval_floor(&try!(expect_type!(args[1], PExpr::Floor))));
+    let pos = try!(eval_position(&try!(expect_type!(args[2], PExpr::Position))));
+
+    Ok(Monster {
+        mtype: MonsterType::Booma,
+        floor: floor,
+        pos: Point{x: 0.,y: 0.,z: 0.},
+    })
+}
+
+fn eval_next_wave(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
+    }
+
+    expect_type!(args[0], PExpr::Identifier)
+}
+
+fn eval_delay(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
+    }
+
+    expect_type!(args[0], PExpr::Integer)
 }
 
 
+fn eval_unlock(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
+    }
+
+    expect_type!(args[0], PExpr::Identifier)
+}
+
+// TODO: disallow multiple delays
+fn eval_wave(args: &Vec<PExpr>) -> Result<Wave, SyntaxError> {
+    if args.len() < 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("wave"), 1, args.len()));
+    }
+
+    let label = try!(expect_type!(args[0], PExpr::Identifier));
+    let mut monsters = Vec::new();
+    let mut next = Vec::new();
+    let mut unlock = Vec::new();
+    let mut delay = u32::max_value();
+
+    for arg in args.iter().skip(1) {
+        match arg {
+            &PExpr::Spawn(ref args) => monsters.push(try!(eval_spawn(&args))),
+            &PExpr::NextWave(ref args) => next.push(try!(eval_next_wave(&args))),
+            &PExpr::Delay(ref args) => delay = try!(eval_delay(&args)),
+            &PExpr::Unlock(ref args) => unlock.push(try!(eval_unlock(&args))),
+            _ => return Err(SyntaxError::InvalidArgument(String::from("wave"), arg.to_string(),
+                                                     String::from("expected spawn, unlock, or delay")))
+        }
+    }
+
+    Ok(Wave {
+        label: label,
+        monsters: monsters,
+        next: next,
+        unlock: unlock,
+        delay: delay,
+    })
+}
+
+// TODO: fill out object
+fn eval_set_player_location(args: &Vec<PExpr>) -> Result<Vec<Object>, SyntaxError> {
+    if args.len() != 9 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("player-set"), 9, args.len()));
+    }
+
+    let floor = try!(eval_floor(&try!(expect_type!(args[0], PExpr::Floor))));
+
+    let mut players = Vec::new();
+    for i in 0..4 {
+        let pos = try!(eval_position(&try!(expect_type!(args[(i * 2) + 1], PExpr::Position))));
+        let dir = try!(eval_direction(&try!(expect_type!(args[(i * 2) + 2], PExpr::Direction))));
+        players.push(Object {
+            otype: ObjectType::SetPlayerLocation(i as u32),
+            floor: floor.clone(),
+            pos: pos,
+            dir: dir,
+        });
+    }
+
+    return Ok(players);
+}
 
 pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
     let mut quest = Quest {
         episode: 0,
         
-        on_start: PExpr::Noop,
         on_success: PExpr::Noop,
         on_failure: PExpr::Noop,
         
         objects: Vec::new(),
+        floors: Vec::new(),
         //let monsters: Vec<Monster> = Vec::new();
+        variables: Vec::new(),
         npcs: Vec::new(),
         waves: Vec::new(),
     };
 
     
     for e in expr.iter() {
-        println!("z: {}", e);
+        println!("z: {:#?}", e);
 
-        // I really shouldnt do this, but it makes me laugh
-        match match e {
-            &PExpr::SetEpisode(ref args) => eval_set_episode(&mut quest, &args),
-            _ => return Err(SyntaxError::InvalidFunction(e.to_string()))
-            //_ => return Err(SyntaxError::Error)
-        } {
-            Ok(z) => {}
-            Err(why) => {
-                println!("error {:?} in {}", why, e);
+        match e {
+            &PExpr::SetEpisode(ref args) => {
+                quest.episode = try!(eval_set_episode(&args));
+            },
+            &PExpr::SetPlayerLocation(ref args) => {
+                quest.objects.append(&mut try!(eval_set_player_location(&args)));
             }
+            &PExpr::QuestSuccess(ref args) => {
+                quest.on_success = try!(eval_quest_success(&args));
+            }
+            &PExpr::Variable(ref args) => {
+                quest.variables.push(try!(eval_variable(&args)));
+            }
+            &PExpr::Wave(ref args) => {
+                quest.waves.push(try!(eval_wave(&args)));
+            },
+            _ => println!("error in {}", e)
         }
         
 
@@ -74,6 +237,7 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
             }
         }*/
     }
+    println!("quest: {:#?}", quest);
 
     Ok(quest)
 }

@@ -129,30 +129,45 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
     match ast {
         &ASTree::Node(ref function, ref args) => {
             eval_statement_match!(function as &str, &args, {
-                ["if", PExpr::If],
+                // general operations
+                ["block", PExpr::Block],
                 ["equal", PExpr::Equal],
+                ["if", PExpr::If],
                 ["set", PExpr::Set],
 
                 // math
                 ["+", PExpr::Plus],
 
                 // pso meta
+                ["on-floor-load", PExpr::OnFloorLoad],
+                ["set-player-location", PExpr::SetPlayerLocation],
+                ["quest-success", PExpr::QuestSuccess],
+                ["quest-failure", PExpr::QuestFailure],
                 ["set-episode", PExpr::SetEpisode],
                 ["set-floor", PExpr::SetFloor],
+                ["variable", PExpr::Variable],
 
                 // general
                 ["floor", PExpr::Floor],
+                ["pos", PExpr::Position],
+                ["dir", PExpr::Direction],
                 
                 // npcs
                 ["npc", PExpr::Npc],
+                ["npc-action", PExpr::NpcAction],
                 ["npc-say", PExpr::NpcSay],
 
                 // doors
+                ["door", PExpr::Door],
 
                 // wave
 
 
-                ["wave", PExpr::Wave]
+                ["wave", PExpr::Wave],
+                ["spawn", PExpr::Spawn],
+                ["next-wave", PExpr::NextWave],
+                ["delay", PExpr::Delay],
+                ["unlock", PExpr::Unlock]
             })
         }
         &ASTree::Value(ref val) => {
@@ -160,7 +175,7 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 Ok(PExpr::Integer(i))
             }
             else if val.starts_with('"') {
-                Ok(PExpr::String(val.clone()))
+                Ok(PExpr::StringLiteral(val.clone()))
             }
             else {
                 Ok(PExpr::Identifier(val.clone()))
