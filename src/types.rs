@@ -2,7 +2,6 @@ use std::fmt;
 use monster::*;
 use std::collections::HashMap;
 
-
 type Register = u8;
 
 #[derive(Debug)]
@@ -15,9 +14,7 @@ pub struct Point {
 #[derive(Debug)]
 pub enum ObjectType {
     SetPlayerLocation(u32), // player #, 
-        
 }
-
 
 #[derive(Debug)]
 pub struct Object {
@@ -27,9 +24,6 @@ pub struct Object {
     pub dir: u32,
 }
 
-
-
-   
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum FloorType {
     Pioneer2,
@@ -85,24 +79,6 @@ impl<'a> From<&'a FloorType> for u32 {
         }
     }
 }
-
-
-/*#[derive(Debug)]
-pub struct Floor {
-    pub label: String,
-    pub id: FloorType,
-}*/
-
-/*pub enum Floor {
-    Label(String),
-    Id(u32),
-}
-
-pub enum WaveLabel {
-    Label(String),
-    Id(u32),
-}*/
-
 
 #[derive(Debug)]
 pub struct NPC {
@@ -183,8 +159,6 @@ pub enum PExpr {
     Spawn(Vec<PExpr>),
     Unlock(Vec<PExpr>),
 
-    // monsters
-    
 }
 
 macro_rules! print_expr {

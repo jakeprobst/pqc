@@ -28,8 +28,6 @@ macro_rules! expect_type {
     }
 }
 
-
-
 // TODO: boolean variables?
 fn eval_variable(args: &Vec<PExpr>) -> Result<Variable, SyntaxError> {
     if args.len() < 1 {
@@ -192,11 +190,6 @@ fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,
     }
 
     let label = try!(expect_type!(args[0], PExpr::Identifier));
-    /*if wave_label_ids.contains_key(&label) {
-        return Err(SyntaxError::WaveAlreadyDefined(label.clone()));
-    }
-    let wave_id = wave_label_ids.len() as u32;
-    wave_label_ids.insert(label.clone(), wave_id);*/
     let possible_wave_id = wave_label_ids.len() + 1;
     let wave_id = *wave_label_ids.entry(label).or_insert(possible_wave_id as u32);
     
@@ -224,7 +217,6 @@ fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,
     }
 
     Ok(Wave {
-        //label: label,
         id: wave_id,
         floor: floor.clone(),
         section: section,
@@ -235,7 +227,6 @@ fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,
     })
 }
 
-// TODO: fill out object
 fn eval_set_player_location(args: &Vec<PExpr>) -> Result<Vec<Object>, SyntaxError> {
     if args.len() != 9 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("player-set"), 9, args.len()));
@@ -267,7 +258,6 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
         
         objects: Vec::new(),
         floors: HashMap::new(),
-        //let monsters: Vec<Monster> = Vec::new();
         variables: Vec::new(),
         npcs: Vec::new(),
         waves: Vec::new(),
@@ -276,7 +266,7 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
     let mut wave_label_ids = HashMap::new();
     
     for e in expr.iter() {
-        println!("z: {:#?}", e);
+        //println!("z: {:#?}", e);
 
         match e {
             &PExpr::SetEpisode(ref args) => {
@@ -302,14 +292,6 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
             },
             _ => println!("error in {}", e)
         }
-        
-
-        /*match result {
-            Ok(z) => {}
-            Err(why) => {
-                println!("error {:?} in {}", why, e);
-            }
-        }*/
     }
     println!("quest: {:#?}", quest);
 
