@@ -19,7 +19,7 @@ use std::cmp::min;
 
 fn printhex(data: Vec<u8>) {
     for line in 0..(data.len()/16)+1 {
-        //print!("{:08X}  ", line*16);
+        print!("{:08X}  ", line*16);
         for i in 0..min(data.len() - line * 16, 16) {
             print!("{:02X} ", data[line*16+i]);
         }
