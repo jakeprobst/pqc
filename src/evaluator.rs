@@ -1,5 +1,7 @@
 use types::*;
+use monster::*;
 use std::fmt::Write;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum SyntaxError {
@@ -7,6 +9,9 @@ pub enum SyntaxError {
     InvalidFunction(String),
     InvalidNumberOfArguments(String, u32, usize),
     InvalidArgument(String, String, String),
+    UnknownMonster(String),
+    UnknownFloor(String),
+    WaveAlreadyDefined(String),
 }
 
 // TODO: replace module_path with function_path once it exists
@@ -22,6 +27,8 @@ macro_rules! expect_type {
         }
     }
 }
+
+
 
 // TODO: boolean variables?
 fn eval_variable(args: &Vec<PExpr>) -> Result<Variable, SyntaxError> {
@@ -54,6 +61,30 @@ fn eval_set_episode(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     }
     
     expect_type!(args[0], PExpr::Integer)
+}
+
+fn eval_map(args: &Vec<PExpr>) -> Result<FloorType, SyntaxError> {
+    if args.len() != 3 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("map"), 3, args.len()));
+    }
+
+    let area = try!(expect_type!(args[0], PExpr::Identifier));
+    let subarea = try!(expect_type!(args[1], PExpr::Integer));
+    let layout = try!(expect_type!(args[2], PExpr::Integer));
+    
+    Ok(FloorType::new(area, subarea, layout))
+}
+
+// TODO: convert identifier to actual floortype
+fn eval_set_floor(args: &Vec<PExpr>) -> Result<(String, FloorType), SyntaxError> {
+    if args.len() != 2 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("set-floor"), 2, args.len()));
+    }
+    
+    let label = try!(expect_type!(args[0], PExpr::Identifier));
+    let map = try!(eval_map(&try!(expect_type!(args[1], PExpr::Map))));
+
+    Ok((label, map))
 }
 
 // TODO: be more strict about this?
@@ -93,78 +124,114 @@ fn eval_direction(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     expect_type!(args[0], PExpr::Integer)
 }
 
+
+fn eval_section(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("section"), 1, args.len()));
+    }
+
+    expect_type!(args[0], PExpr::Integer)
+}
+
 // TODO: type -> enum
 // TODO: per-monster attributes
-fn eval_spawn(args: &Vec<PExpr>) -> Result<Monster, SyntaxError> {
+fn eval_spawn(args: &Vec<PExpr>, wave: u32, section: u16) -> Result<Monster, SyntaxError> {
     if args.len() < 3 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("spawn"), 3, args.len()));
     }
 
     let mtype = try!(expect_type!(args[0], PExpr::Identifier));
-    let floor = try!(eval_floor(&try!(expect_type!(args[1], PExpr::Floor))));
-    let pos = try!(eval_position(&try!(expect_type!(args[2], PExpr::Position))));
+    let id = MonsterType::from(mtype);
+    
+    let pos = try!(eval_position(&try!(expect_type!(args[1], PExpr::Position))));
+    let dir = try!(eval_direction(&try!(expect_type!(args[2], PExpr::Direction))));
 
     Ok(Monster {
-        mtype: MonsterType::Booma,
-        floor: floor,
-        pos: Point{x: 0.,y: 0.,z: 0.},
+        //id: try!(get_monster_id(&mtype)),
+        id: id,
+        wave_id: wave,
+        section: section,
+        dir:dir,
+        pos: pos,
     })
 }
 
-fn eval_next_wave(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+fn eval_next_wave(args: &Vec<PExpr>, wave_label_ids: &mut HashMap<String, u32>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("next-wave"), 1, args.len()));
     }
 
-    expect_type!(args[0], PExpr::Identifier)
+    let next = try!(expect_type!(args[0], PExpr::Identifier));
+
+    let possible_wave_id = wave_label_ids.len()+1;
+    Ok(*wave_label_ids.entry(next).or_insert(possible_wave_id as u32))
 }
 
 fn eval_delay(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("delay"), 1, args.len()));
     }
 
     expect_type!(args[0], PExpr::Integer)
 }
 
 
-fn eval_unlock(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+fn eval_unlock(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("unlock"), 1, args.len()));
     }
 
-    expect_type!(args[0], PExpr::Identifier)
+    expect_type!(args[0], PExpr::Integer)
 }
 
 // TODO: disallow multiple delays
-fn eval_wave(args: &Vec<PExpr>) -> Result<Wave, SyntaxError> {
-    if args.len() < 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("wave"), 1, args.len()));
+fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,
+             wave_label_ids: &mut HashMap<String, u32>) -> Result<Wave, SyntaxError> {
+    if args.len() < 3 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("wave"), 3, args.len()));
     }
 
     let label = try!(expect_type!(args[0], PExpr::Identifier));
+    /*if wave_label_ids.contains_key(&label) {
+        return Err(SyntaxError::WaveAlreadyDefined(label.clone()));
+    }
+    let wave_id = wave_label_ids.len() as u32;
+    wave_label_ids.insert(label.clone(), wave_id);*/
+    let possible_wave_id = wave_label_ids.len() + 1;
+    let wave_id = *wave_label_ids.entry(label).or_insert(possible_wave_id as u32);
+    
+    let floor_label = try!(eval_floor(&try!(expect_type!(args[1], PExpr::Floor))));
+    let floor = match floors.get(&floor_label) {
+        Some(f) => f,
+        None => return Err(SyntaxError::UnknownFloor(floor_label.clone()))
+    };
+    
+    let section = try!(eval_section(&try!(expect_type!(args[2], PExpr::Section))));
     let mut monsters = Vec::new();
     let mut next = Vec::new();
     let mut unlock = Vec::new();
     let mut delay = u32::max_value();
 
-    for arg in args.iter().skip(1) {
+    for arg in args.iter().skip(3) {
         match arg {
-            &PExpr::Spawn(ref args) => monsters.push(try!(eval_spawn(&args))),
-            &PExpr::NextWave(ref args) => next.push(try!(eval_next_wave(&args))),
+            &PExpr::Spawn(ref args) => monsters.push(try!(eval_spawn(&args, wave_id, section as u16))),
+            &PExpr::NextWave(ref args) => next.push(try!(eval_next_wave(&args, wave_label_ids))),
             &PExpr::Delay(ref args) => delay = try!(eval_delay(&args)),
-            &PExpr::Unlock(ref args) => unlock.push(try!(eval_unlock(&args))),
+            &PExpr::Unlock(ref args) => unlock.push(try!(eval_unlock(&args)) as u16),
             _ => return Err(SyntaxError::InvalidArgument(String::from("wave"), arg.to_string(),
                                                      String::from("expected spawn, unlock, or delay")))
         }
     }
 
     Ok(Wave {
-        label: label,
+        //label: label,
+        id: wave_id,
+        floor: floor.clone(),
+        section: section,
         monsters: monsters,
         next: next,
         unlock: unlock,
-        delay: delay,
+        delay: delay as u16,
     })
 }
 
@@ -199,13 +266,14 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
         on_failure: PExpr::Noop,
         
         objects: Vec::new(),
-        floors: Vec::new(),
+        floors: HashMap::new(),
         //let monsters: Vec<Monster> = Vec::new();
         variables: Vec::new(),
         npcs: Vec::new(),
         waves: Vec::new(),
     };
 
+    let mut wave_label_ids = HashMap::new();
     
     for e in expr.iter() {
         println!("z: {:#?}", e);
@@ -224,7 +292,13 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
                 quest.variables.push(try!(eval_variable(&args)));
             }
             &PExpr::Wave(ref args) => {
-                quest.waves.push(try!(eval_wave(&args)));
+                let wave = try!(eval_wave(&args, &quest.floors, &mut wave_label_ids));
+                quest.waves.push(wave);
+            },
+            &PExpr::SetFloor(ref args) => {
+                //quest.floors.push(try!(eval_set_floor(&args)));
+                let (label, floor_id) = try!(eval_set_floor(&args));
+                quest.floors.insert(label, floor_id);
             },
             _ => println!("error in {}", e)
         }

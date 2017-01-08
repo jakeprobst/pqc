@@ -20,7 +20,7 @@
   (pos 130 140 150) (dir 0))
 
 # executes on quest completion
-(quest-success
+(quest-reward
   (cond (get-difficulty)
     (normal
       (window-message "ez game")
@@ -73,16 +73,17 @@
 
 
 
-(wave a1
+(wave a1 (floor c1) (section 12)
   (spawn evil-shark (floor c1) (pos 30 40 50))
   (spawn evil-shark (floor c1) (pos 35 45 55))
   (spawn evil-shark (floor c1) (pos 35 45 55))
   (delay 10)
   (next-wave a2))
 
-(wave a2
-  (spawn evil-shark (floor c1) (pos 30 40 50))
-  (spawn evil-shark (floor c1) (pos 35 45 55))
-  (spawn evil-shark (floor c1) (pos 35 45 55))
+(wave a2 (floor c1) (section 12)
+  (spawn evil-shark (pos 25 40 50) (dir 0))
+  (spawn evil-shark (pos 30 40 50) (dir 90))
+  (spawn evil-shark (pos 35 45 55) (dir 180))
+  (spawn evil-shark (pos 35 45 60) (dir 270))
   (delay 10)
   (unlock 12))

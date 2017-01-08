@@ -149,6 +149,8 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
 
                 // general
                 ["floor", PExpr::Floor],
+                ["map", PExpr::Map],
+                ["section", PExpr::Section],
                 ["pos", PExpr::Position],
                 ["dir", PExpr::Direction],
                 

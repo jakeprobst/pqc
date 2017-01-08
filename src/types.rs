@@ -1,6 +1,6 @@
-
 use std::fmt;
-
+use monster::*;
+use std::collections::HashMap;
 
 
 type Register = u8;
@@ -27,128 +27,82 @@ pub struct Object {
     pub dir: u32,
 }
 
-#[derive(Debug, Clone)]
-pub enum MonsterType {
-    Booma,
-    Gibooma,
-    Gigobooma,
-    // etc
-}
 
-#[derive(Debug, Clone)]
-pub enum CavesLayout {
-    Caves1,
-    Caves2,
-    Caves3,
-    Caves4,
-    Caves5,
-}
 
-#[derive(Debug, Clone)]
-pub enum MinesLayout {
-    Mines1,
-    Mines2,
-    Mines3,
-    Mines4,
-    Mines5,
-}
-
-#[derive(Debug, Clone)]
-pub enum RuinsLayout {
-    Ruins1,
-    Ruins2,
-    Ruins3,
-    Ruins4,
-    Ruins5,
-}
-
-#[derive(Debug, Clone)]
-pub enum TempleLayout {
-    Temple1,
-    Temple2,
-    Temple3,
-}
-
-#[derive(Debug, Clone)]
-pub enum SpaceshipLayout {
-    Spaceship1,
-    Spaceship2,
-    Spaceship3,
-}
-
-#[derive(Debug, Clone)]
-pub enum MountainLayout {
-    Mountain1,
-    Mountain2,
-    Mountain3,
-}
-
-#[derive(Debug, Clone)]
-pub enum SeabedLayout {
-    Seabed1,
-    Seabed2,
-    Seabed3,
-}
-
-#[derive(Debug, Clone)]
-pub enum TowerLayout {
-    Tower1,
-    Tower2,
-    Tower3,
-    Tower4,
-    Tower5,
-}
-    
-#[derive(Debug, Clone)]
+   
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum FloorType {
     Pioneer2,
     Forest1,
     Forest2,
     Dragon,
-    Caves1(CavesLayout),
-    Caves2(CavesLayout),
-    Caves3(CavesLayout),
+    Caves1(u32),
+    Caves2(u32),
+    Caves3(u32),
     DeRolLe,
-    Mines(MinesLayout),
-    Mines2(MinesLayout),
+    Mines(u32),
+    Mines2(u32),
     VolOpt,
-    Ruins1(RuinsLayout),
-    Ruins2(RuinsLayout),
-    Ruins3(RuinsLayout),
+    Ruins1(u32),
+    Ruins2(u32),
+    Ruins3(u32),
     DarkFalz,
     // palace, spaceship
     Lab,
-    Temple(TempleLayout),
+    Temple(u32),
     BarbaRay,
-    Spaceship(SpaceshipLayout),
+    Spaceship(u32),
     GolDragon,
     CCA,
     JungleEast,
     JungleNorth,
-    Mountain(MountainLayout),
+    Mountain(u32),
     Seaside,
     SeasideNight,
     GalGryphon,
-    SeabedUpper(SeabedLayout),
-    SeabedLower(SeabedLayout),
+    SeabedUpper(u32),
+    SeabedLower(u32),
     OlgaFlow,
-    Tower(TowerLayout),
+    Tower(u32),
 }
 
-#[derive(Debug)]
+impl FloorType {
+    pub fn new(area: String, subarea: u32, layout: u32) -> FloorType {
+        match (area.as_ref(), subarea, layout) {
+            ("caves", 1, _) => FloorType::Caves1(layout),
+            ("caves", 2, _) => FloorType::Caves2(layout),
+            ("caves", 3, _) => FloorType::Caves3(layout),
+            _ => panic!("bad map")
+        }
+    }
+}
+
+impl<'a> From<&'a FloorType> for u32 {
+    fn from(floor: &'a FloorType) -> u32 {
+        match floor {
+            &FloorType::Caves1(..) | &FloorType::Caves2(..) | &FloorType::Caves3(..) => 3,
+            _ => 0
+        }
+    }
+}
+
+
+/*#[derive(Debug)]
 pub struct Floor {
     pub label: String,
-    pub floor: FloorType,
+    pub id: FloorType,
+}*/
+
+/*pub enum Floor {
+    Label(String),
+    Id(u32),
 }
 
-#[derive(Debug)]
-pub struct Monster {
-    pub mtype: MonsterType,
-    pub floor: String,
-    pub pos: Point,
-   
-    
-}
+pub enum WaveLabel {
+    Label(String),
+    Id(u32),
+}*/
+
 
 #[derive(Debug)]
 pub struct NPC {
@@ -156,11 +110,13 @@ pub struct NPC {
 
 #[derive(Debug)]
 pub struct Wave {
-    pub label: String,
+    pub id: u32,
+    pub floor: FloorType,
+    pub section: u32,
     pub monsters: Vec<Monster>,
-    pub next: Vec<String>,
-    pub unlock: Vec<String>,
-    pub delay: u32,
+    pub next: Vec<u32>,
+    pub unlock: Vec<u16>,
+    pub delay: u16,
 }
 
 #[derive(Debug)]
@@ -199,6 +155,8 @@ pub enum PExpr {
 
     // general
     Floor(Vec<PExpr>),
+    Map(Vec<PExpr>),
+    Section(Vec<PExpr>),
     Position(Vec<PExpr>),
     Direction(Vec<PExpr>),
 
@@ -272,7 +230,7 @@ pub struct Quest {
     pub on_success: PExpr,
     pub on_failure: PExpr,
     
-    pub floors: Vec<Floor>,
+    pub floors: HashMap<String, FloorType>,
     pub objects: Vec<Object>,
     //pub monsters: Vec<Monster>,
     pub variables: Vec<Variable>,
