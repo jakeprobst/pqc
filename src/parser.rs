@@ -163,13 +163,15 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 ["door", PExpr::Door],
 
                 // wave
-
-
                 ["wave", PExpr::Wave],
                 ["spawn", PExpr::Spawn],
                 ["next-wave", PExpr::NextWave],
                 ["delay", PExpr::Delay],
-                ["unlock", PExpr::Unlock]
+                ["unlock", PExpr::Unlock],
+
+
+                // monster attributes
+                ["idle-distance", PExpr::IdleDistance]
             })
         }
         &ASTree::Value(ref val) => {

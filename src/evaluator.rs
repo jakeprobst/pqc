@@ -28,6 +28,22 @@ macro_rules! expect_type {
     }
 }
 
+fn eval_generic_identifier(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("generic-identifier"), 1, args.len()));
+    }
+    
+    expect_type!(args[0], PExpr::Identifier)
+}
+
+fn eval_generic_integer(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("generic-integer"), 1, args.len()));
+    }
+    
+    expect_type!(args[0], PExpr::Integer)
+}
+
 // TODO: boolean variables?
 fn eval_variable(args: &Vec<PExpr>) -> Result<Variable, SyntaxError> {
     if args.len() < 1 {
@@ -53,13 +69,13 @@ fn eval_variable(args: &Vec<PExpr>) -> Result<Variable, SyntaxError> {
     })
 }
 
-fn eval_set_episode(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+/*fn eval_set_episode(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("set-episode"), 1, args.len()));
     }
     
     expect_type!(args[0], PExpr::Integer)
-}
+}*/
 
 fn eval_map(args: &Vec<PExpr>) -> Result<FloorType, SyntaxError> {
     if args.len() != 3 {
@@ -94,13 +110,13 @@ fn eval_quest_success(args: &Vec<PExpr>) -> Result<PExpr, SyntaxError> {
     Ok(PExpr::Block(args.clone()))
 }
 
-fn eval_floor(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+/*fn eval_floor(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
     }
 
     expect_type!(args[0], PExpr::Identifier)
-}
+}*/
 
 fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
     if args.len() != 3 {
@@ -114,7 +130,7 @@ fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
     Ok(Point{x:x as f32, y:y as f32, z:z as f32})
 }
 
-fn eval_direction(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+/*fn eval_direction(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("dir"), 1, args.len()));
     }
@@ -129,7 +145,7 @@ fn eval_section(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     }
 
     expect_type!(args[0], PExpr::Integer)
-}
+}*/
 
 // TODO: type -> enum
 // TODO: per-monster attributes
@@ -142,7 +158,27 @@ fn eval_spawn(args: &Vec<PExpr>, wave: u32, section: u16) -> Result<Monster, Syn
     let id = MonsterType::from(mtype);
     
     let pos = try!(eval_position(&try!(expect_type!(args[1], PExpr::Position))));
-    let dir = try!(eval_direction(&try!(expect_type!(args[2], PExpr::Direction))));
+    let dir = try!(eval_generic_integer(&try!(expect_type!(args[2], PExpr::Direction))));
+
+    let mut attributes = Vec::new();
+    for arg in args.iter().skip(3) {
+        attributes.push(match arg {
+            &PExpr::IdleDistance(ref attr) => {
+                match &attr[0] {
+                    &PExpr::Integer(int) => MonsterAttribute::IdleDistance(int as f32),
+                    &PExpr::Float(float) => MonsterAttribute::IdleDistance(float),
+                    _ => return Err(SyntaxError::InvalidArgument(String::from("idle-distance"),
+                                                                 arg.to_string(),
+                                                                 String::from("unexpected type")))
+                        
+                }
+            }
+            _ => return Err(SyntaxError::InvalidArgument(String::from("spawn"),
+                                                         arg.to_string(),
+                                                         String::from("unknown attribute")))
+        });
+    }
+    
 
     Ok(Monster {
         //id: try!(get_monster_id(&mtype)),
@@ -151,6 +187,7 @@ fn eval_spawn(args: &Vec<PExpr>, wave: u32, section: u16) -> Result<Monster, Syn
         section: section,
         dir:dir,
         pos: pos,
+        attributes: attributes,
     })
 }
 
@@ -165,7 +202,7 @@ fn eval_next_wave(args: &Vec<PExpr>, wave_label_ids: &mut HashMap<String, u32>) 
     Ok(*wave_label_ids.entry(next).or_insert(possible_wave_id as u32))
 }
 
-fn eval_delay(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+/*fn eval_delay(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("delay"), 1, args.len()));
     }
@@ -180,7 +217,7 @@ fn eval_unlock(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     }
 
     expect_type!(args[0], PExpr::Integer)
-}
+}*/
 
 // TODO: disallow multiple delays
 fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,
@@ -193,13 +230,13 @@ fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,
     let possible_wave_id = wave_label_ids.len() + 1;
     let wave_id = *wave_label_ids.entry(label).or_insert(possible_wave_id as u32);
     
-    let floor_label = try!(eval_floor(&try!(expect_type!(args[1], PExpr::Floor))));
+    let floor_label = try!(eval_generic_identifier(&try!(expect_type!(args[1], PExpr::Floor))));
     let floor = match floors.get(&floor_label) {
         Some(f) => f,
         None => return Err(SyntaxError::UnknownFloor(floor_label.clone()))
     };
     
-    let section = try!(eval_section(&try!(expect_type!(args[2], PExpr::Section))));
+    let section = try!(eval_generic_integer(&try!(expect_type!(args[2], PExpr::Section))));
     let mut monsters = Vec::new();
     let mut next = Vec::new();
     let mut unlock = Vec::new();
@@ -209,8 +246,8 @@ fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,
         match arg {
             &PExpr::Spawn(ref args) => monsters.push(try!(eval_spawn(&args, wave_id, section as u16))),
             &PExpr::NextWave(ref args) => next.push(try!(eval_next_wave(&args, wave_label_ids))),
-            &PExpr::Delay(ref args) => delay = try!(eval_delay(&args)),
-            &PExpr::Unlock(ref args) => unlock.push(try!(eval_unlock(&args)) as u16),
+            &PExpr::Delay(ref args) => delay = try!(eval_generic_integer(&args)),
+            &PExpr::Unlock(ref args) => unlock.push(try!(eval_generic_integer(&args)) as u16),
             _ => return Err(SyntaxError::InvalidArgument(String::from("wave"), arg.to_string(),
                                                      String::from("expected spawn, unlock, or delay")))
         }
@@ -232,12 +269,12 @@ fn eval_set_player_location(args: &Vec<PExpr>) -> Result<Vec<Object>, SyntaxErro
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("player-set"), 9, args.len()));
     }
 
-    let floor = try!(eval_floor(&try!(expect_type!(args[0], PExpr::Floor))));
+    let floor = try!(eval_generic_identifier(&try!(expect_type!(args[0], PExpr::Floor))));
 
     let mut players = Vec::new();
     for i in 0..4 {
         let pos = try!(eval_position(&try!(expect_type!(args[(i * 2) + 1], PExpr::Position))));
-        let dir = try!(eval_direction(&try!(expect_type!(args[(i * 2) + 2], PExpr::Direction))));
+        let dir = try!(eval_generic_integer(&try!(expect_type!(args[(i * 2) + 2], PExpr::Direction))));
         players.push(Object {
             otype: ObjectType::SetPlayerLocation(i as u32),
             floor: floor.clone(),
@@ -270,7 +307,8 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
 
         match e {
             &PExpr::SetEpisode(ref args) => {
-                quest.episode = try!(eval_set_episode(&args));
+                //quest.episode = try!(eval_set_episode(&args));
+                quest.episode = try!(eval_generic_integer(&args));
             },
             &PExpr::SetPlayerLocation(ref args) => {
                 quest.objects.append(&mut try!(eval_set_player_location(&args)));

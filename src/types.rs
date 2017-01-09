@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 type Register = u8;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Point {
     pub x: f32,
     pub y: f32,
@@ -34,7 +34,7 @@ pub enum FloorType {
     Caves2(u32),
     Caves3(u32),
     DeRolLe,
-    Mines(u32),
+    Mines1(u32),
     Mines2(u32),
     VolOpt,
     Ruins1(u32),
@@ -60,21 +60,51 @@ pub enum FloorType {
     Tower(u32),
 }
 
+// TODO: TryFrom where it dies on bad map layout numbers?
+// TODO: ep2/4
+// TODO: check e1 boss values for correctness?
 impl FloorType {
     pub fn new(area: String, subarea: u32, layout: u32) -> FloorType {
         match (area.as_ref(), subarea, layout) {
+            ("forest", 1, _) => FloorType::Forest1,
+            ("forest", 2, _) => FloorType::Forest2,
             ("caves", 1, _) => FloorType::Caves1(layout),
             ("caves", 2, _) => FloorType::Caves2(layout),
             ("caves", 3, _) => FloorType::Caves3(layout),
+            ("mines", 1, _) => FloorType::Mines1(layout),
+            ("mines", 2, _) => FloorType::Mines2(layout),
+            ("ruins", 1, _) => FloorType::Ruins1(layout),
+            ("ruins", 2, _) => FloorType::Ruins2(layout),
+            ("ruins", 3, _) => FloorType::Ruins3(layout),
+            ("dragon", _, _) => FloorType::Dragon,
+            ("de-rol-le", _, _) => FloorType::DeRolLe,
+            ("vol-opt", _, _) => FloorType::VolOpt,
+            ("dark-falz", _, _) => FloorType::DarkFalz,
             _ => panic!("bad map")
         }
     }
 }
 
+// TODO: ep2/4
+// TODO: check e1 boss values for correctness?
 impl<'a> From<&'a FloorType> for u32 {
     fn from(floor: &'a FloorType) -> u32 {
         match floor {
-            &FloorType::Caves1(..) | &FloorType::Caves2(..) | &FloorType::Caves3(..) => 3,
+            &FloorType::Pioneer2 => 0,
+            &FloorType::Forest1 => 1,
+            &FloorType::Forest2 => 2,
+            &FloorType::Caves1(..) => 3,
+            &FloorType::Caves2(..) => 4,
+            &FloorType::Caves3(..) => 5,
+            &FloorType::Mines1(..) => 6,
+            &FloorType::Mines2(..) => 7,
+            &FloorType::Ruins1(..) => 8,
+            &FloorType::Ruins2(..) => 9,
+            &FloorType::Ruins3(..) => 10,
+            &FloorType::Dragon => 11,
+            &FloorType::DeRolLe => 12,
+            &FloorType::VolOpt => 13,
+            &FloorType::DarkFalz => 14,
             _ => 0
         }
     }
@@ -158,6 +188,9 @@ pub enum PExpr {
     NextWave(Vec<PExpr>),
     Spawn(Vec<PExpr>),
     Unlock(Vec<PExpr>),
+
+    // monster attributes
+    IdleDistance(Vec<PExpr>),
 
 }
 

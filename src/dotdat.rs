@@ -8,6 +8,7 @@ use monster::*;
 use evaluator::*;
 
 
+const OBJECT_HEADER_ID: u32 = 2;
 const MONSTER_HEADER_ID: u32 = 2;
 const WAVE_HEADER_ID: u32 = 3;
 
