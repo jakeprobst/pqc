@@ -69,14 +69,6 @@ fn eval_variable(args: &Vec<PExpr>) -> Result<Variable, SyntaxError> {
     })
 }
 
-/*fn eval_set_episode(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
-    if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("set-episode"), 1, args.len()));
-    }
-    
-    expect_type!(args[0], PExpr::Integer)
-}*/
-
 fn eval_map(args: &Vec<PExpr>) -> Result<FloorType, SyntaxError> {
     if args.len() != 3 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("map"), 3, args.len()));
@@ -110,14 +102,6 @@ fn eval_quest_success(args: &Vec<PExpr>) -> Result<PExpr, SyntaxError> {
     Ok(PExpr::Block(args.clone()))
 }
 
-/*fn eval_floor(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
-    if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("floor"), 1, args.len()));
-    }
-
-    expect_type!(args[0], PExpr::Identifier)
-}*/
-
 fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
     if args.len() != 3 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("pos"), 3, args.len()));
@@ -129,23 +113,6 @@ fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
 
     Ok(Point{x:x as f32, y:y as f32, z:z as f32})
 }
-
-/*fn eval_direction(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
-    if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("dir"), 1, args.len()));
-    }
-
-    expect_type!(args[0], PExpr::Integer)
-}
-
-
-fn eval_section(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
-    if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("section"), 1, args.len()));
-    }
-
-    expect_type!(args[0], PExpr::Integer)
-}*/
 
 // TODO: type -> enum
 // TODO: per-monster attributes
@@ -201,23 +168,6 @@ fn eval_next_wave(args: &Vec<PExpr>, wave_label_ids: &mut HashMap<String, u32>) 
     let possible_wave_id = wave_label_ids.len()+1;
     Ok(*wave_label_ids.entry(next).or_insert(possible_wave_id as u32))
 }
-
-/*fn eval_delay(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
-    if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("delay"), 1, args.len()));
-    }
-
-    expect_type!(args[0], PExpr::Integer)
-}
-
-
-fn eval_unlock(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
-    if args.len() != 1 {
-        return Err(SyntaxError::InvalidNumberOfArguments(String::from("unlock"), 1, args.len()));
-    }
-
-    expect_type!(args[0], PExpr::Integer)
-}*/
 
 // TODO: disallow multiple delays
 fn eval_wave(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>,

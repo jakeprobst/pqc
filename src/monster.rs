@@ -423,11 +423,6 @@ impl RawMonsterData {
         }
     }
 
-    /*pub fn id<'a>(&'a mut self, id: u16) -> &'a mut RawMonsterData {
-        self.id = id;
-        self
-    }*/
-
     pub fn unknown1<'a>(&'a mut self, unknown1: u16) -> &'a mut RawMonsterData {
         self.unknown1 = unknown1;
         self
@@ -448,40 +443,10 @@ impl RawMonsterData {
         self
     }
 
-    /*pub fn section<'a>(&'a mut self, section: u16) -> &'a mut RawMonsterData {
-        self.section = section;
-        self
-    }
-
-    pub fn wave_id<'a>(&'a mut self, wave_id: u32) -> &'a mut RawMonsterData {
-        self.wave_id = wave_id;
-        self
-    }
-
-    pub fn x<'a>(&'a mut self, x: f32) -> &'a mut RawMonsterData {
-        self.x = x;
-        self
-    }
-
-    pub fn y<'a>(&'a mut self, y: f32) -> &'a mut RawMonsterData {
-        self.y = y;
-        self
-    }
-
-    pub fn z<'a>(&'a mut self, z: f32) -> &'a mut RawMonsterData {
-        self.z = z;
-        self
-    }*/
-
     pub fn xrot<'a>(&'a mut self, xrot: u32) -> &'a mut RawMonsterData {
         self.xrot = xrot;
         self
     }
-
-    /*pub fn yrot<'a>(&'a mut self, yrot: u32) -> &'a mut RawMonsterData {
-        self.yrot = yrot;
-        self
-    }*/
 
     pub fn zrot<'a>(&'a mut self, zrot: u32) -> &'a mut RawMonsterData {
         self.zrot = zrot;
