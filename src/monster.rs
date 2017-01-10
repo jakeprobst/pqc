@@ -1035,32 +1035,3 @@ fn raw_shambertin(monster: &Monster) -> Vec<u8> {
         .as_bytes()
 }
 
-
-
-
-
-/*fn raw_evil_shark(mon: &Monster) -> Vec<u8> {
-    make_monster_data(0x63, 0, 0xffff, 5, 0xffff, mon.section, mon.wave_id, mon.pos.x, mon.pos.y,
-                      mon.pos.z, 0, mon.dir, 0, 0., 0., 0., 0., 0., 0, 0)
-}
-
-fn raw_pal_shark(mon: &Monster) -> Vec<u8> {
-    make_monster_data(0x63, 0, 0xffff, 5, 0xffff, mon.section, mon.wave_id, mon.pos.x, mon.pos.y,
-                      mon.pos.z, 0, mon.dir, 0, 0., 0., 0., 0., 0., 1, 0)
-}
-
-fn raw_guil_shark(mon: &Monster) -> Vec<u8> {
-    make_monster_data(0x63, 0, 0xffff, 5, 0x1817, mon.section, mon.wave_id, mon.pos.x, mon.pos.y,
-                      mon.pos.z, 0, mon.dir, 0, 0., 0., 0., 0., 0., 2, 0)
-}
-
-fn raw_nano_dragon(mon: &Monster) -> Vec<u8> {
-    make_monster_data(0x62, 0, 0xffff, 5, 0x1817, mon.section, mon.wave_id, mon.pos.x, mon.pos.y,
-                      mon.pos.z, 0, mon.dir, 0, 0., 0., 0., 0., 0., 0, 0)
-}
-
-fn raw_grass_assassin(mon: &Monster) -> Vec<u8> {
-    make_monster_data(0x60, 0, 0xffff, 4, 0x1805, mon.section, mon.wave_id, mon.pos.x, mon.pos.y,
-                      mon.pos.z, 0, mon.dir, 0, 0., 0., 0., 0., 0., 0, 0)
-}
-*/
