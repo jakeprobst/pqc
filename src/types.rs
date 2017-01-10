@@ -1,5 +1,6 @@
 use std::fmt;
 use monster::*;
+use object::*;
 use std::collections::HashMap;
 
 type Register = u8;
@@ -11,20 +12,7 @@ pub struct Point {
     pub z: f32,
 }
 
-#[derive(Debug)]
-pub enum ObjectType {
-    SetPlayerLocation(u32), // player #, 
-}
-
-#[derive(Debug)]
-pub struct Object {
-    pub otype: ObjectType,
-    pub floor: String,
-    pub pos: Point,
-    pub dir: u32,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Copy)]
 pub enum FloorType {
     Pioneer2,
     Forest1,
@@ -192,6 +180,9 @@ pub enum PExpr {
     // monster attributes
     IdleDistance(Vec<PExpr>),
 
+    // objects
+    Object(Vec<PExpr>),
+
 }
 
 macro_rules! print_expr {
@@ -237,7 +228,8 @@ pub struct Quest {
     pub on_success: PExpr,
     pub on_failure: PExpr,
     
-    pub floors: HashMap<String, FloorType>,
+    //pub floors: HashMap<String, FloorType>,
+    pub floors: Vec<FloorType>,
     pub objects: Vec<Object>,
     //pub monsters: Vec<Monster>,
     pub variables: Vec<Variable>,
