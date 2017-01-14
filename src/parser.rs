@@ -20,12 +20,21 @@ pub fn tokenize_script(script: &str) -> Vec<String> {
 
     let mut current = String::new();
     let mut in_quote = false;
+    let mut in_comment = false;
     for c in script.chars() {
         if in_quote {
             current.push(c);
             if c == '"' {
                 in_quote = false;
             }
+        }
+        else if in_comment {
+            if c == '\n' {
+                in_comment = false;
+            }
+        }
+        else if c == '#' {
+            in_comment = true;
         }
         else if c == '(' || c == ')' {
             if current.len() > 0 {
