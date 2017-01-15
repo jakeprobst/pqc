@@ -1,9 +1,9 @@
 use std::fmt;
 use monster::*;
 use object::*;
+use npc::*;
 use std::collections::HashMap;
 
-type Register = u8;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
@@ -54,6 +54,7 @@ pub enum FloorType {
 impl FloorType {
     pub fn new(area: String, subarea: u32, layout: u32) -> FloorType {
         match (area.as_ref(), subarea, layout) {
+            ("pioneer2", _, _) => FloorType::Pioneer2,
             ("forest", 1, _) => FloorType::Forest1,
             ("forest", 2, _) => FloorType::Forest2,
             ("caves", 1, _) => FloorType::Caves1(layout),
@@ -99,10 +100,6 @@ impl<'a> From<&'a FloorType> for u32 {
 }
 
 #[derive(Debug)]
-pub struct NPC {
-}
-
-#[derive(Debug)]
 pub struct Wave {
     pub id: u32,
     pub floor: FloorType,
@@ -116,7 +113,7 @@ pub struct Wave {
 #[derive(Debug)]
 pub enum VariableValue {
     None,
-    //Boolean()
+    Boolean(bool),
     Integer(u32),
     Float(f32),
     String(String),
@@ -134,11 +131,13 @@ pub enum PExpr {
     Noop,
     Integer(u32),
     Float(f32),
+    Boolean(bool),
     Identifier(String),
     StringLiteral(String),
     
     // general operations
     Block(Vec<PExpr>),
+    Cond(Vec<PExpr>),
     Equal(Vec<PExpr>),
     If(Vec<PExpr>),
     Set(Vec<PExpr>),
@@ -155,6 +154,7 @@ pub enum PExpr {
     Direction(Vec<PExpr>),
 
     // general meta pso
+    GetDifficulty(Vec<PExpr>),
     OnFloorLoad(Vec<PExpr>),
     SetPlayerLocation(Vec<PExpr>),
     QuestSuccess(Vec<PExpr>),
@@ -162,13 +162,27 @@ pub enum PExpr {
     SetEpisode(Vec<PExpr>),
     SetFloor(Vec<PExpr>),
 
+
+    // pso stuff?
+    GiveMeseta(Vec<PExpr>),
+    PlayBgm(Vec<PExpr>),
+    WindowMessage(Vec<PExpr>),
+    
     // npcs
     Npc(Vec<PExpr>),
-    NpcAction(Vec<PExpr>),
+    //NpcAction(Vec<PExpr>),
     NpcSay(Vec<PExpr>),
+    Skin(Vec<PExpr>),
 
+    // objects
+    CollisionEvent(Vec<PExpr>),
+
+    Radius(Vec<PExpr>),
+    Action(Vec<PExpr>),
+    
     // doors
     Door(Vec<PExpr>),
+    Type(Vec<PExpr>),
 
     // wave
     Wave(Vec<PExpr>),
@@ -176,6 +190,7 @@ pub enum PExpr {
     NextWave(Vec<PExpr>),
     Spawn(Vec<PExpr>),
     Unlock(Vec<PExpr>),
+    StartWave(Vec<PExpr>),
 
     // monster attributes
     IdleDistance(Vec<PExpr>),
@@ -201,7 +216,8 @@ macro_rules! print_expr {
 
 impl fmt::Display for PExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
+        write!(f, "{:?}", self)
+        /*match self {
             &PExpr::If(ref args) => print_expr!(f, "if", args),
             &PExpr::Equal(ref args) => print_expr!(f, "equal", args),
             &PExpr::Set(ref args) => print_expr!(f, "set", args),
@@ -214,8 +230,8 @@ impl fmt::Display for PExpr {
             &PExpr::Identifier(ref args) => {
                 write!(f, "{}", args)
             },
-            _ => write!(f, "!!add {:?} to fmt::Display for PExpr!!", self),
-        }
+            _ => write!(f, "[[!add {:?} to fmt::Display for PExpr!]]", self),
+        }*/
     }
 }
 
@@ -231,9 +247,9 @@ pub struct Quest {
     //pub floors: HashMap<String, FloorType>,
     pub floors: Vec<FloorType>,
     pub objects: Vec<Object>,
-    //pub monsters: Vec<Monster>,
+    pub npcs: Vec<Npc>,
     pub variables: Vec<Variable>,
-    pub npcs: Vec<NPC>,
+    pub functions: HashMap<u32, PExpr>,
     pub waves: Vec<Wave>,
 }
 

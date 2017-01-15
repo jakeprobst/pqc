@@ -1,6 +1,7 @@
 use types::*;
 use monster::*;
 use object::*;
+use npc::*;
 use std::fmt::Write;
 use std::collections::HashMap;
 
@@ -21,7 +22,7 @@ macro_rules! expect_type {
         match $arg {
             $t(ref var) => Ok(var.clone()),
             _ => {
-                Err(SyntaxError::InvalidArgument(String::from(module_path!()),
+                Err(SyntaxError::InvalidArgument(String::from(format!("{}:{}", module_path!(), line!())),
                                                         $arg.to_string(),
                                                         String::from("expected different type")))
             }
@@ -77,13 +78,19 @@ struct QuestBuilder {
     floors: Vec<FloorType>,
     objects: Vec<Object>,
     variables: Vec<Variable>,
-    npcs: Vec<NPC>,
+    functions: HashMap<u32, PExpr>,
+    npcs: Vec<Npc>,
     waves: Vec<Wave>,
     
     // meta data
     floor_label_ids: HashMap<String, FloorType>,
     next_wave_label: u32,
     wave_label_ids: HashMap<String, u32>,
+    
+    next_function_id: u32,
+    function_label_ids: HashMap<String, u32>,
+    next_npc_id: u32,
+    npc_label_ids: HashMap<String, u32>,
 }
 
 impl QuestBuilder {
@@ -95,12 +102,17 @@ impl QuestBuilder {
             floors: Vec::new(),
             objects: Vec::new(),
             variables: Vec::new(),
+            functions: HashMap::new(),
             npcs: Vec::new(),
             waves: Vec::new(),
 
             floor_label_ids: HashMap::new(),
             next_wave_label: 1,
             wave_label_ids: HashMap::new(),
+            next_function_id: 300,
+            function_label_ids: HashMap::new(),
+            next_npc_id: 40,
+            npc_label_ids: HashMap::new(),
         }
     }
 
@@ -110,6 +122,13 @@ impl QuestBuilder {
             None => Err(SyntaxError::UnknownFloor(ident.clone()))
         }
     }
+
+    /*fn npc_id_from_identifier(&self, ident: String) -> Result<u32, SyntaxError> {
+        match self.floor_label_ids.get(&ident) {
+            Some(f) => Ok(f.clone()),
+            None => Err(SyntaxError::UnknownFloor(ident.clone()))
+        }
+    }*/
 
     fn eval_set_episode(&mut self, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
         self.episode = try!(eval_generic_integer(&args));
@@ -125,6 +144,7 @@ impl QuestBuilder {
         let name = try!(expect_type!(args[0], PExpr::Identifier));
         let value = if args.len() == 2 {
             match &args[1] {
+                &PExpr::Boolean(ref v) => VariableValue::Boolean(v.clone()),
                 &PExpr::Integer(ref v) => VariableValue::Integer(v.clone()),
                 &PExpr::Float(ref v) => VariableValue::Float(v.clone()),
                 &PExpr::StringLiteral(ref v) => VariableValue::String(v.clone()),
@@ -168,6 +188,72 @@ impl QuestBuilder {
         Ok(())
     }
 
+
+    fn eval_npc(&mut self, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
+        if args.len() < 6 {
+            return Err(SyntaxError::InvalidNumberOfArguments(String::from("npc"), 6, args.len()));
+        }
+
+        let label = try!(expect_type!(args[0], PExpr::Identifier));
+
+        // to get around borrow checker silliness re: closures
+        let npc_id = {
+            let next_npc_id = &mut self.next_npc_id;
+            *self.npc_label_ids.entry(label).or_insert_with(|| {
+                *next_npc_id +=1;
+                *next_npc_id
+            })
+        };
+
+        let skin = try!(eval_generic_identifier(&try!(expect_type!(args[1], PExpr::Skin))));
+        let floor_label = try!(eval_generic_identifier(&try!(expect_type!(args[2], PExpr::Floor))));
+        let floor = try!(self.floor_id_from_identifier(floor_label));
+        let section = try!(eval_generic_integer(&try!(expect_type!(args[3], PExpr::Section))));
+        let pos = try!(eval_position(&try!(expect_type!(args[4], PExpr::Position))));
+        let dir = try!(eval_generic_integer(&try!(expect_type!(args[5], PExpr::Direction))));
+
+        let mut npc_action = PExpr::Noop;
+        let mut move_flag = 0;
+        let mut move_distance = 0;
+        let mut hide_register = 0; // ???
+
+        for arg in args.iter().skip(6) {
+            match arg {
+                &PExpr::Action(ref a) => npc_action = PExpr::Block(a.clone()),
+                
+                _ => return Err(SyntaxError::InvalidArgument(String::from("npc"),
+                                                             arg.to_string(),
+                                                             String::from("unexpected type")))
+            }
+        }
+        
+
+
+        self.next_function_id += 1;
+        self.functions.insert(self.next_function_id, npc_action);
+
+
+        
+        self.npcs.push(Npc {
+            skin: NpcType::from(skin),
+            floor: floor,
+            section: section as u16,
+            pos: pos,
+            dir: dir,
+            move_flag: move_flag,
+            move_distance: move_distance as f32,
+            hide_register: hide_register as f32,
+            character_id: npc_id.clone() as f32,
+            function: self.next_function_id as f32,
+            
+            
+        });
+        
+        
+
+
+        Ok(())
+    }
     
     // TODO: per-monster attributes
     fn eval_spawn(&self, args: &Vec<PExpr>, wave: u32, section: u16) -> Result<Monster, SyntaxError> {
@@ -200,7 +286,6 @@ impl QuestBuilder {
         }
         
         Ok(Monster {
-            //id: try!(get_monster_id(&mtype)),
             id: id,
             wave_id: wave,
             section: section,
@@ -278,14 +363,10 @@ impl QuestBuilder {
             let sec = try!(eval_generic_integer(&try!(expect_type!(args[(i * 3) + 1], PExpr::Section))));
             let pos = try!(eval_position(&try!(expect_type!(args[(i * 3) + 2], PExpr::Position))));
             let dir = try!(eval_generic_integer(&try!(expect_type!(args[(i * 3) + 3], PExpr::Direction))));
-            self.objects.push(Object {
-                otype: ObjectType::SetPlayerLocation,
-                floor_id: floor_id.clone(),
-                section : sec as u16,
-                pos: pos,
-                dir: dir,
-                attributes: vec![ObjectAttribute::Player(i as u32)],
-            });
+            
+            self.objects.push(Object::new(ObjectType::SetPlayerLocation, floor_id, sec as u16, pos)
+                              .dir(dir)
+                              .attribute(ObjectAttribute::Player(i as u32)));
         }
 
         Ok(())
@@ -310,6 +391,7 @@ impl QuestBuilder {
             floors: self.floors,
             objects: self.objects,
             variables: self.variables,
+            functions: self.functions,
             npcs: self.npcs,
             waves: self.waves,
         }
@@ -320,67 +402,7 @@ impl QuestBuilder {
 
 
 
-
-
-
-
-
 pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
-    /*let mut quest = Quest {
-        episode: 0,
-        
-        on_success: PExpr::Noop,
-        on_failure: PExpr::Noop,
-
-        floors: Vec::new(),
-        objects: Vec::new(),
-        variables: Vec::new(),
-        npcs: Vec::new(),
-        waves: Vec::new(),
-    };
-    
-    let mut floors = HashMap::new();
-    let mut wave_label_ids = HashMap::new();
-    
-    for e in expr.iter() {
-        //println!("z: {:#?}", e);
-
-        match e {
-            &PExpr::SetEpisode(ref args) => {
-                //quest.episode = try!(eval_set_episode(&args));
-                quest.episode = try!(eval_generic_integer(&args));
-            },
-            &PExpr::SetPlayerLocation(ref args) => {
-                quest.objects.append(&mut try!(eval_set_player_location(&args)));
-            }
-            &PExpr::QuestSuccess(ref args) => {
-                quest.on_success = try!(eval_quest_success(&args));
-            }
-            &PExpr::Variable(ref args) => {
-                quest.variables.push(try!(eval_variable(&args)));
-            }
-            &PExpr::Wave(ref args) => {
-                let wave = try!(eval_wave(&args, &floors, &mut wave_label_ids));
-                quest.waves.push(wave);
-            },
-            &PExpr::SetFloor(ref args) => {
-                //quest.floors.push(try!(eval_set_floor(&args)));
-                let (label, floor_id) = try!(eval_set_floor(&args));
-                floors.insert(label, floor_id);
-                quest.floors.push(floor_id);
-            },
-            &PExpr::Object(ref args) => {
-                quest.objects.push(try!(eval_object(&args)));
-            }
-            _ => println!("error in {}", e)
-        }
-    }
-    println!("quest: {:#?}", quest);
-
-    Ok(quest);*/
-
-
-
     let mut qbuilder = QuestBuilder::new();
 
     for e in expr.iter() {
@@ -389,10 +411,11 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
             &PExpr::SetPlayerLocation(ref args) => try!(qbuilder.eval_set_player_location(&args)),
             &PExpr::QuestSuccess(ref args) => try!(qbuilder.eval_quest_success(&args)),
             &PExpr::Variable(ref args) => try!(qbuilder.eval_variable(&args)),
+            &PExpr::Npc(ref args) => try!(qbuilder.eval_npc(&args)),
             &PExpr::Wave(ref args) => try!(qbuilder.eval_wave(&args)),
             &PExpr::SetFloor(ref args) => try!(qbuilder.eval_set_floor(&args)),
             &PExpr::Object(ref args) => try!(qbuilder.eval_object(&args)),
-            _ => println!("error in {}", e)
+            _ => println!("unexpected function: {}", e)
         }
     }
 

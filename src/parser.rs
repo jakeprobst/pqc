@@ -148,6 +148,7 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 ["+", PExpr::Plus],
 
                 // pso meta
+                ["get-difficulty", PExpr::GetDifficulty],
                 ["on-floor-load", PExpr::OnFloorLoad],
                 ["set-player-location", PExpr::SetPlayerLocation],
                 ["quest-success", PExpr::QuestSuccess],
@@ -155,6 +156,11 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 ["set-episode", PExpr::SetEpisode],
                 ["set-floor", PExpr::SetFloor],
                 ["variable", PExpr::Variable],
+
+                // pso stuff
+                ["give-meseta", PExpr::GiveMeseta],
+                ["play-bgm", PExpr::PlayBgm],
+                ["window-message", PExpr::WindowMessage],
 
                 // general
                 ["floor", PExpr::Floor],
@@ -165,11 +171,19 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 
                 // npcs
                 ["npc", PExpr::Npc],
-                ["npc-action", PExpr::NpcAction],
+                //["npc-action", PExpr::NpcAction],
                 ["npc-say", PExpr::NpcSay],
+                ["skin", PExpr::Skin],
 
+                // objects
+                ["collision-event", PExpr::CollisionEvent],
+
+                ["radius", PExpr::Radius],
+                ["action", PExpr::Action],
+                
                 // doors
                 ["door", PExpr::Door],
+                ["type", PExpr::Type],
 
                 // wave
                 ["wave", PExpr::Wave],
@@ -177,10 +191,16 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 ["next-wave", PExpr::NextWave],
                 ["delay", PExpr::Delay],
                 ["unlock", PExpr::Unlock],
+                ["start-wave", PExpr::StartWave],
 
 
                 // monster attributes
-                ["idle-distance", PExpr::IdleDistance]
+                ["idle-distance", PExpr::IdleDistance],
+
+                // objects
+                ["object", PExpr::Object]
+
+                    
             })
         }
         &ASTree::Value(ref val) => {
@@ -189,6 +209,12 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
             }
             else if val.starts_with('"') {
                 Ok(PExpr::StringLiteral(val.clone()))
+            }
+            else if val == "true" {
+                Ok(PExpr::Boolean(true))
+            }
+            else if val == "false" {
+                Ok(PExpr::Boolean(false))
             }
             else {
                 Ok(PExpr::Identifier(val.clone()))
