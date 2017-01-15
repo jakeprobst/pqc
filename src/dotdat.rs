@@ -5,10 +5,11 @@ use byteorder::{LittleEndian, WriteBytesExt};
 
 use types::*;
 use monster::*;
+use npc::*;
 use evaluator::*;
 
 
-const OBJECT_HEADER_ID: u32 = 2;
+const OBJECT_HEADER_ID: u32 = 1;
 const MONSTER_HEADER_ID: u32 = 2;
 const WAVE_HEADER_ID: u32 = 3;
 
@@ -33,9 +34,14 @@ fn monster_wave_raw_bytes(wave: &Wave, wave_id: u32) -> Vec<u8> {
 
 // TODO: rename because npcs might need to also be parsed here?
 // TODO: requires a lot of data to be filled in from the .rel files (or just hardcode!)
-fn generate_monster_data(waves: &Vec<Wave>) -> Result<Vec<u8>, DatError> {
+fn generate_npc_monster_data(npcs: &Vec<Npc>, waves: &Vec<Wave>) -> Result<Vec<u8>, DatError> {
     // map for each area to wave
     let mut floor_monster_data = BTreeMap::new();
+
+    for npc in npcs.iter() {
+        let this_floor = floor_monster_data.entry(&npc.floor).or_insert(Vec::new());
+        (*this_floor).append(&mut Vec::<u8>::from(npc));
+    }
     
     for wave in waves.iter() {
         let this_floor = floor_monster_data.entry(&wave.floor).or_insert(Vec::new());
@@ -127,7 +133,7 @@ pub fn generate_dat(quest: &Quest) -> Result<Vec<u8>, DatError> {
     let mut dat = Vec::new();
 
     //dat.append(&mut try!(generate_object_data(&quest.waves, &floors)));
-    dat.append(&mut try!(generate_monster_data(&quest.waves)));
+    dat.append(&mut try!(generate_npc_monster_data(&quest.npcs, &quest.waves)));
     dat.append(&mut try!(generate_wave_data(&quest.waves)));
     // 4?
     // 5?
