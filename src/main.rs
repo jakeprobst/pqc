@@ -5,13 +5,17 @@ extern crate byteorder;
 mod types;
 mod monster;
 mod parser;
+mod npc;
+mod object;
 mod evaluator;
 mod dotbin;
 mod dotdat;
 
 use std::fmt;
 use std::cmp::min;
-
+use std::env;
+use std::io::prelude::*;
+use std::fs::File;
 
 /*fn load_file(path: &str) -> String {
     
@@ -27,6 +31,15 @@ fn printhex(data: Vec<u8>) {
     }
 }
 
+fn load_file(path: &str) -> String {
+    println!("path: {}", path);
+    let mut f = File::open(path).unwrap();
+    let mut s = String::new();
+
+    f.read_to_string(&mut s);
+
+    return s;
+}
 
 fn main() {
     //let script = "(if (equal asd 3 qw) (set asd 4) (set asd (+ 2 3))) (npc +urmom+ (floor p2) (npc-say \"hue hue hue\"))";
@@ -36,7 +49,7 @@ fn main() {
          [f1 forest1-1]
          [c1 caves1-3]
     [c2 caves2-2])";*/
-    let script = "\
+/*    let script = "\
 (set-episode 1)
 (set-floor c1 (map caves 1 3)) 
 (wave a1 (floor c1) (section 12)
@@ -51,8 +64,9 @@ fn main() {
   (spawn nano-dragon (pos 16 17 18) (dir 270))
   (spawn grass-assassin (pos 19 20 21) (dir 0))
   (delay 30))
-";
-    println!("{}", script);
+    ";*/
+    let script = load_file(env::args().nth(1).unwrap().as_str());
+    println!("script: {}", script);
         
     //let expr = try!(parser::parse_script_to_expr(script));
     /*let tokens = parser::tokenize_str(script);
@@ -60,28 +74,29 @@ fn main() {
      */
 
     // cant try! in main
-    match parser::parse_script_to_expr(script) {
+    match parser::parse_script_to_expr(script.as_str()) {
         Ok(expr) => {
             match evaluator::eval_quest(expr) {
                 Ok(quest) => {
+                    println!("quest: {:#?}", quest);
                     match dotdat::generate_dat(&quest) {
                         Ok(dat) => {
                             println!("dat: {:?}", dat);
                             printhex(dat);
                         }
                         Err(why) => {
-                            println!("binerr: {:?}", why);
+                            println!("bin err: {:?}", why);
                         }
                     }
                     
                 },
                 Err(why) => {
-                    println!("evalerr: {:?}", why);
+                    println!("eval err: {:?}", why);
                 }
             }
         }
         Err(why) => {
-            println!("parseerr: {:?}", why);
+            println!("parser err: {:?}", why);
             
         }
     }
