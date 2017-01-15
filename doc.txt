@@ -4,40 +4,44 @@
 (set-episode 1)
 
 # helper function, creates shops+tekker+bank
-(make-pioneer2-shops 1)
+#(make-pioneer2-shops 1)
 
 # select which floors the quest will use, they will be refered to in scripts later using the id specified
-(set-floor p2 pioneer2)
-(set-floor f1 forest1-1)
-(set-floor c1 caves1-3)
-(set-floor c2 caves2-2)
+(set-floor p2 (map pioneer2 0 0))
+(set-floor f1 (map forest 1 1))
+(set-floor c1 (map caves 1 3))
+(set-floor c2 (map caves 2 2))
 
 # sets where the players spawn on a given floor
+# re-think this function, this is awful
 (set-player-location (floor f1)
-  (pos 100 110 120) (dir 180)
-  (pos 110 120 130) (dir 190)
-  (pos 120 130 140) (dir 359)
-  (pos 130 140 150) (dir 0))
+  (section 2) (pos 100 110 120) (dir 180)
+  (section 2) (pos 110 120 130) (dir 190)
+  (section 2) (pos 120 130 140) (dir 359)
+  (section 2) (pos 130 140 150) (dir 0))
 
 # executes on quest completion
-(quest-reward
-  (cond (get-difficulty)
-    (normal
+(quest-success
+  (if (equal (get-difficulty) diff-normal)
+    (block
       (window-message "ez game")
       (play-bgm 1)
-      (give-meseta 1000))
-    (hard
+      (give-meseta 1000)))
+  (if (equal (get-difficulty) diff-hard)
+    (block
       (window-message "ez game")
       (play-bgm 1)
-      (give-meseta 2000))
-    (very-hard
+      (give-meseta 2000)))
+  (if (equal (get-difficulty) diff-very-hard)
+    (block
       (window-message "ez game")
       (play-bgm 1)
-      (give-meseta 3000))
-    (ultimate
+      (give-meseta 4000)))
+  (if (equal (get-difficulty) diff-ultimate)
+    (block
       (window-message "ez game")
       (play-bgm 1)
-      (give-meseta 4000))))
+      (give-meseta 8000))))
 
 # executes on quest failure
 (quest-failure
@@ -46,8 +50,8 @@
 # example npc dialogue
 (variable *talked-to-hopkins* false)
 
-(npc +hopkins+ (floor p2) (pos 90 80 78)
-  (npc-action +hopkins+
+(npc +hopkin+ (skin npc-fonewm) (floor p2) (section 20) (pos 90 80 78) (dir 76)
+  (action
     (if *talked-to-hopkins*
       (npc-say +hopkins+
         "go away man")
@@ -65,25 +69,24 @@
 )
 
 
-(make-collision (area c1) (pos 10 20 30) (radius 80)
-  (collision-action
-    (start-spawn 1)))
+(collision-event (floor c1) (pos 10 20 30) (radius 80)
+  (action
+    (start-wave a1)))
 
-(door (area c1) (pos 12 34 56) (skin normal))
+(door d1-2
+  (floor c1) (pos 12 34 56) (type normal))
 
-
-
+(set-episode 1)
+(set-floor c1 (map caves 1 3)) 
 (wave a1 (floor c1) (section 12)
-  (spawn evil-shark (floor c1) (pos 30 40 50))
-  (spawn evil-shark (floor c1) (pos 35 45 55))
-  (spawn evil-shark (floor c1) (pos 35 45 55))
+  (spawn evil-shark (pos 30 40 50) (dir 90))
+  (spawn evil-shark (pos 35 45 55) (dir 180) (idle-distance 10))
+  (spawn evil-shark (pos 35 45 55) (dir 270) (idle-distance 20))
   (delay 10)
   (next-wave a2))
-
 (wave a2 (floor c1) (section 12)
-  (spawn evil-shark (pos 25 40 50) (dir 0))
-  (spawn evil-shark (pos 30 40 50) (dir 90))
-  (spawn evil-shark (pos 35 45 55) (dir 180))
-  (spawn evil-shark (pos 35 45 60) (dir 270))
-  (delay 10)
-  (unlock 12))
+  (spawn pal-shark (pos 10 11 12) (dir 90))
+  (spawn guil-shark (pos 13 14 15) (dir 180))
+  (spawn nano-dragon (pos 16 17 18) (dir 270))
+  (spawn grass-assassin (pos 19 20 21) (dir 0))
+  (delay 30))
