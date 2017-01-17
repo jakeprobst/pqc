@@ -3,6 +3,7 @@ use types::*;
 use byteorder::{LittleEndian, WriteBytesExt};
 use std::convert::From;
 
+// TODO: unexpected attr error
 pub enum MonsterError {
     NoSuchMonster(String)
 }

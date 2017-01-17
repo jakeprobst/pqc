@@ -6,6 +6,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use types::*;
 use monster::*;
 use npc::*;
+use object::*;
 use evaluator::*;
 
 
@@ -129,10 +130,37 @@ fn generate_wave_data(waves: &Vec<Wave>) -> Result<Vec<u8>, DatError> {
     Ok(full_wave_data)
 }
 
+fn generate_object_data(objs: &Vec<Object>) -> Result<Vec<u8>, DatError> {
+    let mut obj_floors = BTreeMap::new();
+    for obj in objs.iter() {
+        let obj_list = obj_floors.entry(&obj.floor).or_insert(Vec::new());
+        obj_list.push(obj);
+    }
+
+    let mut full_obj_data = Vec::new();
+
+    for (floor, obj_list) in obj_floors.iter() {
+        let mut obj_data = Vec::new();
+
+        for obj in obj_list.iter() {
+            obj_data.append(&mut Vec::<u8>::from(*obj));
+        }
+
+        full_obj_data.write_u32::<LittleEndian>(OBJECT_HEADER_ID);
+        full_obj_data.write_u32::<LittleEndian>(obj_data.len() as u32 + 16);
+        full_obj_data.write_u32::<LittleEndian>(u32::from(*floor));
+        full_obj_data.write_u32::<LittleEndian>(obj_data.len() as u32);
+        full_obj_data.append(&mut obj_data);
+    }
+
+    Ok(full_obj_data)
+}
+
+
 pub fn generate_dat(quest: &Quest) -> Result<Vec<u8>, DatError> {
     let mut dat = Vec::new();
 
-    //dat.append(&mut try!(generate_object_data(&quest.waves, &floors)));
+    dat.append(&mut try!(generate_object_data(&quest.objects)));
     dat.append(&mut try!(generate_npc_monster_data(&quest.npcs, &quest.waves)));
     dat.append(&mut try!(generate_wave_data(&quest.waves)));
     // 4?

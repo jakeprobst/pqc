@@ -91,6 +91,7 @@ struct QuestBuilder {
     function_label_ids: HashMap<String, u32>,
     next_npc_id: u32,
     npc_label_ids: HashMap<String, u32>,
+    next_object_id: u16,
 }
 
 impl QuestBuilder {
@@ -113,6 +114,7 @@ impl QuestBuilder {
             function_label_ids: HashMap::new(),
             next_npc_id: 40,
             npc_label_ids: HashMap::new(),
+            next_object_id: 500,
         }
     }
 
@@ -227,12 +229,8 @@ impl QuestBuilder {
             }
         }
         
-
-
         self.next_function_id += 1;
         self.functions.insert(self.next_function_id, npc_action);
-
-
         
         self.npcs.push(Npc {
             skin: NpcType::from(skin),
@@ -245,12 +243,7 @@ impl QuestBuilder {
             hide_register: hide_register as f32,
             character_id: npc_id.clone() as f32,
             function: self.next_function_id as f32,
-            
-            
         });
-        
-        
-
 
         Ok(())
     }
@@ -363,8 +356,9 @@ impl QuestBuilder {
             let sec = try!(eval_generic_integer(&try!(expect_type!(args[(i * 3) + 1], PExpr::Section))));
             let pos = try!(eval_position(&try!(expect_type!(args[(i * 3) + 2], PExpr::Position))));
             let dir = try!(eval_generic_integer(&try!(expect_type!(args[(i * 3) + 3], PExpr::Direction))));
-            
-            self.objects.push(Object::new(ObjectType::SetPlayerLocation, floor_id, sec as u16, pos)
+
+            self.next_object_id += 1;
+            self.objects.push(Object::new(ObjectType::SetPlayerLocation, self.next_object_id, floor_id, sec as u16, pos)
                               .dir(dir)
                               .attribute(ObjectAttribute::Player(i as u32)));
         }
