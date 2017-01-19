@@ -134,6 +134,11 @@ pub enum PExpr {
     Boolean(bool),
     Identifier(String),
     StringLiteral(String),
+
+    // quest meta
+    QuestName(Vec<PExpr>),
+    QuestDescription(Vec<PExpr>),
+    QuestDescriptionLong(Vec<PExpr>),
     
     // general operations
     Block(Vec<PExpr>),
@@ -240,6 +245,10 @@ impl fmt::Display for PExpr {
 pub struct Quest {
     pub episode: u32,
 
+    pub quest_name: String,
+    pub quest_description: String,
+    pub quest_description_long: String,
+    
     //pub on_start: PExpr,
     pub on_success: PExpr,
     pub on_failure: PExpr,

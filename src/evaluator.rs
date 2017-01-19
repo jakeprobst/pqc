@@ -38,6 +38,14 @@ fn eval_generic_identifier(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
     expect_type!(args[0], PExpr::Identifier)
 }
 
+fn eval_generic_string(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("generic-string"), 1, args.len()));
+    }
+    
+    expect_type!(args[0], PExpr::StringLiteral)
+}
+
 fn eval_generic_integer(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("generic-integer"), 1, args.len()));
@@ -73,6 +81,9 @@ fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
 struct QuestBuilder {
     // quest data
     episode: u32,
+    quest_name: String,
+    quest_description: String,
+    quest_description_long: String,
     on_success: PExpr,
     on_failure: PExpr,
     floors: Vec<FloorType>,
@@ -98,6 +109,9 @@ impl QuestBuilder {
     fn new() -> QuestBuilder {
         QuestBuilder {
             episode: 0,
+            quest_name: String::new(),
+            quest_description: String::new(),
+            quest_description_long: String::new(),
             on_success: PExpr::Noop,
             on_failure: PExpr::Noop,
             floors: Vec::new(),
@@ -134,6 +148,21 @@ impl QuestBuilder {
 
     fn eval_set_episode(&mut self, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
         self.episode = try!(eval_generic_integer(&args));
+        Ok(())
+    }
+
+    fn eval_quest_name(&mut self, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
+        self.quest_name = try!(eval_generic_string(&args));
+        Ok(())
+    }
+
+    fn eval_quest_description(&mut self, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
+        self.quest_description = try!(eval_generic_string(&args));
+        Ok(())
+    }
+    
+    fn eval_quest_description_long(&mut self, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
+        self.quest_description_long = try!(eval_generic_string(&args));
         Ok(())
     }
     
@@ -380,6 +409,9 @@ impl QuestBuilder {
     fn as_quest(self) -> Quest {
         Quest {
             episode: self.episode,
+            quest_name: self.quest_name,
+            quest_description: self.quest_description,
+            quest_description_long: self.quest_description_long,
             on_success: self.on_success,
             on_failure: self.on_failure,
             floors: self.floors,
@@ -401,6 +433,9 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
 
     for e in expr.iter() {
         match e {
+            &PExpr::QuestName(ref args) => try!(qbuilder.eval_quest_name(&args)),
+            &PExpr::QuestDescription(ref args) => try!(qbuilder.eval_quest_description(&args)),
+            &PExpr::QuestDescriptionLong(ref args) => try!(qbuilder.eval_quest_description_long(&args)),
             &PExpr::SetEpisode(ref args) => try!(qbuilder.eval_set_episode(&args)),
             &PExpr::SetPlayerLocation(ref args) => try!(qbuilder.eval_set_player_location(&args)),
             &PExpr::QuestSuccess(ref args) => try!(qbuilder.eval_quest_success(&args)),

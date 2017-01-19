@@ -138,6 +138,11 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
     match ast {
         &ASTree::Node(ref function, ref args) => {
             eval_statement_match!(function as &str, &args, {
+                // quest meta
+                ["quest-name", PExpr::QuestName],
+                ["quest-description", PExpr::QuestDescription],
+                ["quest-description-long", PExpr::QuestDescriptionLong],
+                
                 // general operations
                 ["block", PExpr::Block],
                 ["equal", PExpr::Equal],

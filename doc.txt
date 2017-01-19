@@ -1,5 +1,9 @@
 # pqs syntax!
 
+(quest-name "cool quest")
+(quest-description "hey check this out!")
+(quest-description-long "a quest that was compiled using pqc and might one day work")
+
 # set episode
 (set-episode 1)
 
