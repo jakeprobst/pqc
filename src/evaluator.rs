@@ -89,8 +89,10 @@ struct QuestBuilder {
     floors: Vec<FloorType>,
     objects: Vec<Object>,
     variables: Vec<Variable>,
-    functions: HashMap<u32, PExpr>,
-    npcs: Vec<Npc>,
+    //functions: HashMap<f32, PExpr>,
+    functions: HashMap<String, PExpr>,
+    //npcs: Vec<Npc>,
+    npcs: HashMap<String, Npc>,
     waves: Vec<Wave>,
     
     // meta data
@@ -98,8 +100,8 @@ struct QuestBuilder {
     next_wave_label: u32,
     wave_label_ids: HashMap<String, u32>,
     
-    next_function_id: u32,
-    function_label_ids: HashMap<String, u32>,
+    //next_function_id: f32,
+    //function_label_ids: HashMap<String, u32>,
     next_npc_id: u32,
     npc_label_ids: HashMap<String, u32>,
     next_object_id: u16,
@@ -118,14 +120,15 @@ impl QuestBuilder {
             objects: Vec::new(),
             variables: Vec::new(),
             functions: HashMap::new(),
-            npcs: Vec::new(),
+            //npcs: Vec::new(),
+            npcs: HashMap::new(),
             waves: Vec::new(),
 
             floor_label_ids: HashMap::new(),
             next_wave_label: 1,
             wave_label_ids: HashMap::new(),
-            next_function_id: 300,
-            function_label_ids: HashMap::new(),
+            //next_function_id: 300.,
+            //function_label_ids: HashMap::new(),
             next_npc_id: 40,
             npc_label_ids: HashMap::new(),
             next_object_id: 500,
@@ -230,7 +233,7 @@ impl QuestBuilder {
         // to get around borrow checker silliness re: closures
         let npc_id = {
             let next_npc_id = &mut self.next_npc_id;
-            *self.npc_label_ids.entry(label).or_insert_with(|| {
+            *self.npc_label_ids.entry(label.clone()).or_insert_with(|| {
                 *next_npc_id +=1;
                 *next_npc_id
             })
@@ -258,10 +261,10 @@ impl QuestBuilder {
             }
         }
         
-        self.next_function_id += 1;
-        self.functions.insert(self.next_function_id, npc_action);
+        //self.next_function_id += 1.;
+        //self.functions.insert(self.next_function_id, npc_action);
         
-        self.npcs.push(Npc {
+        self.npcs.insert(label.clone(), Npc {
             skin: NpcType::from(skin),
             floor: floor,
             section: section as u16,
@@ -271,7 +274,8 @@ impl QuestBuilder {
             move_distance: move_distance as f32,
             hide_register: hide_register as f32,
             character_id: npc_id.clone() as f32,
-            function: self.next_function_id as f32,
+            //function: self.next_function_id as f32,
+            function: Function::Expr(npc_action),
         });
 
         Ok(())

@@ -8,6 +8,7 @@ mod parser;
 mod npc;
 mod object;
 mod evaluator;
+mod assembler;
 mod dotbin;
 mod dotdat;
 
@@ -77,11 +78,20 @@ fn main() {
     match parser::parse_script_to_expr(script.as_str()) {
         Ok(expr) => {
             match evaluator::eval_quest(expr) {
-                Ok(quest) => {
+                Ok(mut quest) => {
                     println!("quest: {:#?}", quest);
+                    match dotbin::generate_bin(&mut quest) {
+                        Ok(bin) => {
+                            printhex(bin);
+                        }
+                        Err(why) => {
+                            println!("bin err: {:?}", why);
+                        }
+                    }
+                    println!("");
+                    //println!("{:#?}", quest.npcs);
                     match dotdat::generate_dat(&quest) {
                         Ok(dat) => {
-                            println!("dat: {:?}", dat);
                             printhex(dat);
                         }
                         Err(why) => {

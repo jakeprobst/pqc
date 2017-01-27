@@ -4,7 +4,9 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use std::convert::From;
 
 pub enum NpcError{
-    NoSuchNpc(String)
+    NoSuchNpc(String),
+    
+        
 }
 
 
@@ -105,36 +107,41 @@ pub struct Npc {
     pub move_distance: f32,
     pub hide_register: f32,
     pub character_id: f32,
-    pub function: f32,
+    pub function: Function,
 }
 
 
 // TODO: do these zeroes need to be variables of some sort?
-impl<'a> From<&'a Npc> for Vec<u8> {
-    fn from(npc: &'a Npc) -> Vec<u8> {
+//impl<'a> From<&'a Npc> for Vec<u8> {
+//fn from(npc: &'a Npc) -> Vec<u8> {
+impl Npc {
+    pub fn as_bytes(&self) -> Vec<u8> {
         let mut ndata = Vec::new();
-        ndata.write_u16::<LittleEndian>(u16::from(npc.skin.clone()));
+        ndata.write_u16::<LittleEndian>(u16::from(self.skin.clone()));
         ndata.write_u16::<LittleEndian>(0);
         ndata.write_u32::<LittleEndian>(0);
         ndata.write_u16::<LittleEndian>(0);
         ndata.write_u16::<LittleEndian>(0);
-        ndata.write_u16::<LittleEndian>(npc.section);
+        ndata.write_u16::<LittleEndian>(self.section);
         ndata.write_u16::<LittleEndian>(0);
         ndata.write_u32::<LittleEndian>(0);
-        ndata.write_f32::<LittleEndian>(npc.pos.x);
-        ndata.write_f32::<LittleEndian>(npc.pos.y);
-        ndata.write_f32::<LittleEndian>(npc.pos.z);
+        ndata.write_f32::<LittleEndian>(self.pos.x);
+        ndata.write_f32::<LittleEndian>(self.pos.y);
+        ndata.write_f32::<LittleEndian>(self.pos.z);
         ndata.write_u32::<LittleEndian>(0);
-        ndata.write_u32::<LittleEndian>(npc.dir);
+        ndata.write_u32::<LittleEndian>(self.dir);
         ndata.write_u32::<LittleEndian>(0);
-        ndata.write_f32::<LittleEndian>(npc.move_distance);
+        ndata.write_f32::<LittleEndian>(self.move_distance);
         ndata.write_f32::<LittleEndian>(0.0);
-        ndata.write_f32::<LittleEndian>(npc.hide_register);
-        ndata.write_f32::<LittleEndian>(npc.character_id);
-        ndata.write_f32::<LittleEndian>(npc.function);
-        ndata.write_u32::<LittleEndian>(npc.move_flag);
+        ndata.write_f32::<LittleEndian>(self.hide_register);
+        ndata.write_f32::<LittleEndian>(self.character_id);
+        ndata.write_f32::<LittleEndian>(if let Function::Id(func) = self.function {
+            func
+        } else {
+            0. // TODO: make this case error out instead? should this even be reachable?
+        });
+        ndata.write_u32::<LittleEndian>(self.move_flag);
         ndata.write_u32::<LittleEndian>(0);
         ndata
-        
     }
 }

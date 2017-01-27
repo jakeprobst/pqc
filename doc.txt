@@ -4,6 +4,10 @@
 (quest-description "hey check this out!")
 (quest-description-long "a quest that was compiled using pqc and might one day work")
 
+# (quest-version v3) # bb, dc
+# (quest-id 101)
+# (language en) # jp, de, fr, etc
+
 # set episode
 (set-episode 1)
 
@@ -54,9 +58,9 @@
 # example npc dialogue
 (variable *talked-to-hopkins* false)
 
-(npc +hopkin+ (skin npc-fonewm) (floor p2) (section 20) (pos 90 80 78) (dir 76)
+(npc +hopkins+ (skin npc-fonewm) (floor p2) (section 20) (pos 90 80 78) (dir 76)
   (action
-    (if *talked-to-hopkins*
+    (if (equal *talked-to-hopkins* true)
       (npc-say +hopkins+
         "go away man")
       (block

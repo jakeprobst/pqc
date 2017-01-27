@@ -35,13 +35,13 @@ fn monster_wave_raw_bytes(wave: &Wave, wave_id: u32) -> Vec<u8> {
 
 // TODO: rename because npcs might need to also be parsed here?
 // TODO: requires a lot of data to be filled in from the .rel files (or just hardcode!)
-fn generate_npc_monster_data(npcs: &Vec<Npc>, waves: &Vec<Wave>) -> Result<Vec<u8>, DatError> {
+fn generate_npc_monster_data(npcs: &HashMap<String, Npc>, waves: &Vec<Wave>) -> Result<Vec<u8>, DatError> {
     // map for each area to wave
     let mut floor_monster_data = BTreeMap::new();
 
-    for npc in npcs.iter() {
+    for (_, npc) in npcs.iter() {
         let this_floor = floor_monster_data.entry(&npc.floor).or_insert(Vec::new());
-        (*this_floor).append(&mut Vec::<u8>::from(npc));
+        (*this_floor).append(&mut npc.as_bytes());
     }
     
     for wave in waves.iter() {

@@ -126,6 +126,19 @@ pub struct Variable {
     //pub register: Register,
 }
 
+/*pub struct Function {
+    pub name: String,
+    pub id: f32,
+    pub expr: PExpr,
+}*/
+
+#[derive(Debug, Clone)]
+pub enum Function {
+    Id(f32),
+    Expr(PExpr),
+}
+
+
 #[derive(Debug, Clone)]
 pub enum PExpr {
     Noop,
@@ -256,9 +269,10 @@ pub struct Quest {
     //pub floors: HashMap<String, FloorType>,
     pub floors: Vec<FloorType>,
     pub objects: Vec<Object>,
-    pub npcs: Vec<Npc>,
+    //pub npcs: Vec<Npc>,
+    pub npcs: HashMap<String, Npc>,
     pub variables: Vec<Variable>,
-    pub functions: HashMap<u32, PExpr>,
+    pub functions: HashMap<String, PExpr>,
     pub waves: Vec<Wave>,
 }
 
