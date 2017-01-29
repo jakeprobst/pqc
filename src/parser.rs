@@ -213,7 +213,7 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 Ok(PExpr::Integer(i))
             }
             else if val.starts_with('"') {
-                Ok(PExpr::StringLiteral(val.clone()))
+                Ok(PExpr::StringLiteral(val.chars().skip(1).take(val.len()-2).collect()))
             }
             else if val == "true" {
                 Ok(PExpr::Boolean(true))
