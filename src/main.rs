@@ -12,6 +12,7 @@ mod evaluator;
 mod assembler;
 mod dotbin;
 mod dotdat;
+mod opcode;
 
 use std::fmt;
 use std::cmp::min;
