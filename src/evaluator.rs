@@ -78,6 +78,16 @@ fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
     Ok(Point{x:x as f32, y:y as f32, z:z as f32})
 }
 
+fn eval_direction(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+    if args.len() != 1 {
+        return Err(SyntaxError::InvalidNumberOfArguments(String::from("dir"), 1, args.len()));
+    }
+
+    let dir = try!(expect_type!(args[0], PExpr::Integer));
+
+    Ok((dir as f32 *(360.0/65535.0)) as u32)
+}
+
 struct QuestBuilder {
     // quest data
     episode: u32,
@@ -244,7 +254,7 @@ impl QuestBuilder {
         let floor = try!(self.floor_id_from_identifier(floor_label));
         let section = try!(eval_generic_integer(&try!(expect_type!(args[3], PExpr::Section))));
         let pos = try!(eval_position(&try!(expect_type!(args[4], PExpr::Position))));
-        let dir = try!(eval_generic_integer(&try!(expect_type!(args[5], PExpr::Direction))));
+        let dir = try!(eval_direction(&try!(expect_type!(args[5], PExpr::Direction))));
 
         let mut npc_action = PExpr::Noop;
         let mut move_flag = 0;
@@ -291,7 +301,7 @@ impl QuestBuilder {
         let id = MonsterType::from(mtype);
         
         let pos = try!(eval_position(&try!(expect_type!(args[1], PExpr::Position))));
-        let dir = try!(eval_generic_integer(&try!(expect_type!(args[2], PExpr::Direction))));
+        let dir = try!(eval_direction(&try!(expect_type!(args[2], PExpr::Direction))));
 
         let mut attributes = Vec::new();
         for arg in args.iter().skip(3) {
@@ -388,7 +398,7 @@ impl QuestBuilder {
         for i in 0..4 {
             let sec = try!(eval_generic_integer(&try!(expect_type!(args[(i * 3) + 1], PExpr::Section))));
             let pos = try!(eval_position(&try!(expect_type!(args[(i * 3) + 2], PExpr::Position))));
-            let dir = try!(eval_generic_integer(&try!(expect_type!(args[(i * 3) + 3], PExpr::Direction))));
+            let dir = try!(eval_direction(&try!(expect_type!(args[(i * 3) + 3], PExpr::Direction))));
 
             self.next_object_id += 1;
             self.objects.push(Object::new(ObjectType::SetPlayerLocation, self.next_object_id, floor_id, sec as u16, pos)
