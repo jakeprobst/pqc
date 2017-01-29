@@ -1049,7 +1049,9 @@ impl Assembler {
             //npc.function = Function::Id(self.get_label() as f32);
             
             //self.opcodes.push(OpCode::Label(self.next_label_id));
-            self.opcodes.push(OpCode::Label(*self.npc_labels.get(nlabel).unwrap()));
+            let nid = *self.npc_labels.get(nlabel).unwrap();
+            npc.function = Function::Id(nid as f32);
+            self.opcodes.push(OpCode::Label(nid));
             self.opcodes.append(&mut npc_func);
             println!("npcop: {:?}", self.opcodes);
         }
