@@ -23,7 +23,7 @@ use std::fs::File;
     
 }*/
 
-fn printhex(data: Vec<u8>) {
+fn printhex(data: &Vec<u8>) {
     for line in 0..(data.len()/16)+1 {
         print!("{:08X}  ", line*16);
         for i in 0..min(data.len() - line * 16, 16) {
@@ -83,7 +83,9 @@ fn main() {
                     println!("quest: {:#?}", quest);
                     match dotbin::generate_bin(&mut quest) {
                         Ok(bin) => {
-                            printhex(bin);
+                            printhex(&bin);
+                            let mut f = File::create(env::args().nth(1).unwrap() +  &".bin").unwrap();
+                            f.write_all(&bin);
                         }
                         Err(why) => {
                             println!("bin err: {:?}", why);
@@ -93,7 +95,9 @@ fn main() {
                     //println!("{:#?}", quest.npcs);
                     match dotdat::generate_dat(&quest) {
                         Ok(dat) => {
-                            printhex(dat);
+                            printhex(&dat);
+                            let mut f = File::create(env::args().nth(1).unwrap() +  &".dat").unwrap();
+                            f.write_all(&dat);
                         }
                         Err(why) => {
                             println!("bin err: {:?}", why);
