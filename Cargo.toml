@@ -5,6 +5,7 @@ authors = ["Jake Probst <jake.probst@gmail.com>"]
 
 [dependencies]
 byteorder = "0.5.1"
+encoding = "0.2"
 
 [lib]
 name = "pqc"

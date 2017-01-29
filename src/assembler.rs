@@ -1,21 +1,22 @@
-
-
-// TODO: make enum for gflags?
+use encoding::{Encoding, EncoderTrap};
+use encoding::all::UTF_16LE;
+use std::collections::{HashMap, BTreeMap};
+use byteorder::{LittleEndian, WriteBytesExt};
 
 use types::*;
 use npc::*;
-use std::collections::{HashMap, BTreeMap};
 
 
-type FunctionId = u32;
+type FunctionId = u16;
 type Register = u8;
 type GFlag = u16;
 
+// TODO: make enum for gflags?
 
 // TODO: possibly rename these from their qedit equivalent?
 #[derive(Debug)]
 pub enum OpCode {
-    Label(u32),
+    Label(u16),
     Nop,
     Ret,
     Sync,
@@ -525,12 +526,236 @@ pub enum OpCode {
 }
 
 
+enum OpCodeCmd {
+    None,
+    u8(u8),
+    u16(u16),
+}
+
+#[derive(Debug)]
+enum OpCodeArg {
+    u8(u8),
+    i8(i8),
+    u16(u16),
+    i16(i16),
+    u32(u32),
+    i32(i32),
+    f32(f32),
+    reg(Register),
+    string(String),
+}
+
+enum OpCodeType {
+    Imediate,
+    Stack,
+}
+
+struct OpCodeBytes {
+    cmd: OpCodeCmd,
+    otype: OpCodeType,
+    args: Vec<OpCodeArg>,
+}
+
+impl OpCodeBytes {
+    pub fn imed() -> OpCodeBytes {
+        OpCodeBytes {
+            cmd: OpCodeCmd::None,
+            otype: OpCodeType::Imediate,
+            args: Vec::new()
+        }
+    }
+
+    pub fn stack() -> OpCodeBytes {
+        OpCodeBytes {
+            cmd: OpCodeCmd::None,
+            otype: OpCodeType::Stack,
+            args: Vec::new()
+        }
+    }
+
+    pub fn cmd_u8<'a>(&'a mut self, cmd: u8) -> &'a mut OpCodeBytes {
+        self.cmd = OpCodeCmd::u8(cmd);
+        self
+    }
+
+    pub fn cmd_u16<'a>(&'a mut self, cmd: u16) -> &'a mut OpCodeBytes {
+        self.cmd = OpCodeCmd::u16(cmd);
+        self
+    }
+
+    pub fn arg_u8<'a>(&'a mut self, arg: u8) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::u8(arg));
+        self
+    }
+
+    pub fn arg_i8<'a>(&'a mut self, arg: i8) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::i8(arg));
+        self
+    }
+
+    pub fn arg_u16<'a>(&'a mut self, arg: u16) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::u16(arg));
+        self
+    }
+
+    pub fn arg_i16<'a>(&'a mut self, arg: i16) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::i16(arg));
+        self
+    }
+    
+    pub fn arg_u32<'a>(&'a mut self, arg: u32) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::u32(arg));
+        self
+    }
+
+    pub fn arg_i32<'a>(&'a mut self, arg: i32) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::i32(arg));
+        self
+    }
+    
+    pub fn arg_f32<'a>(&'a mut self, arg: f32) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::f32(arg));
+        self
+    }
+    
+    pub fn arg_reg<'a>(&'a mut self, arg: Register) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::reg(arg));
+        self
+    }
+
+    pub fn arg_string<'a>(&'a mut self, arg: String) -> &'a mut OpCodeBytes {
+        self.args.push(OpCodeArg::string(arg));
+        self
+    }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        match self.cmd {
+            OpCodeCmd::u8(cmd) => bytes.write_u8(cmd),
+            OpCodeCmd::u16(cmd) => bytes.write_u16::<LittleEndian>(cmd),
+            OpCodeCmd::None => panic!("noopcode")
+        };
+
+        for arg in self.args.iter() {
+            match self.otype {
+                OpCodeType::Imediate => {
+                    match arg {
+                        &OpCodeArg::u8(d) => bytes.write_u8(d),
+                        &OpCodeArg::i8(d) => bytes.write_i8(d),
+                        &OpCodeArg::u16(d) => bytes.write_u16::<LittleEndian>(d),
+                        &OpCodeArg::i16(d) => bytes.write_i16::<LittleEndian>(d),
+                        &OpCodeArg::u32(d) => bytes.write_u32::<LittleEndian>(d),
+                        &OpCodeArg::i32(d) => bytes.write_i32::<LittleEndian>(d),
+                        &OpCodeArg::f32(d) => bytes.write_f32::<LittleEndian>(d),
+                        &OpCodeArg::reg(d) => bytes.write_u8(d),
+                        _ => panic!("gjkrjglrg")
+                    };
+                }
+                OpCodeType::Stack => {
+                    match arg {
+                        &OpCodeArg::u8(d) => {
+                            bytes.write_u8(0x4A);
+                            bytes.write_u8(d);
+                        }
+                        &OpCodeArg::i8(d) => {
+                            bytes.write_u8(0x4A);
+                            bytes.write_i8(d);
+                        }
+                        &OpCodeArg::u16(d) => {
+                            bytes.write_u8(0x4B);
+                            bytes.write_u16::<LittleEndian>(d);
+                        }
+                        &OpCodeArg::i16(d) => {
+                            bytes.write_u8(0x4B);
+                            bytes.write_i16::<LittleEndian>(d);
+                        }
+                        &OpCodeArg::u32(d) => {
+                            bytes.write_u8(0x49);
+                            bytes.write_u32::<LittleEndian>(d);
+                        }
+                        &OpCodeArg::i32(d) => {
+                            bytes.write_u8(0x49);
+                            bytes.write_i32::<LittleEndian>(d);
+                        }
+                        &OpCodeArg::f32(d) => {
+                            bytes.write_u8(0x49); // assuming?
+                            bytes.write_f32::<LittleEndian>(d);
+                        }
+                        &OpCodeArg::reg(d) => {
+                            bytes.write_u8(0x48);
+                            bytes.write_u8(d);
+                        }
+                        &OpCodeArg::string(ref d) => {
+                            bytes.write_u8(0x4E);
+                            let mut utf16str = UTF_16LE.encode(d.as_str(), EncoderTrap::Ignore).unwrap();
+                            bytes.write_u16::<LittleEndian>(utf16str.len()as u16 +2);
+                            bytes.append(&mut utf16str);
+                            bytes.write_u16::<LittleEndian>(0);
+                        }
+                    };
+                }
+            }
+        }
+        bytes
+    }
+}
 
 
 impl OpCode {
-    /*fn to_pasm() -> [u8] {
-    }*.
-}*/
+    fn as_bytes(&self) -> Vec<u8> {
+        match self {
+            &OpCode::SetEpisode(ep) => {
+                OpCodeBytes::imed()
+                    .cmd_u16(0xf8bc)
+                    .arg_u32(ep)
+                    .as_bytes()
+            }
+            &OpCode::Ret => {
+                OpCodeBytes::imed()
+                    .cmd_u8(0x01)
+                    .as_bytes()
+            }
+            &OpCode::JmpIEq(reg, val, func) => {
+                OpCodeBytes::imed()
+                    .cmd_u8(0x2d)
+                    .arg_reg(reg)
+                    .arg_i32(val as i32)
+                    .arg_u16(func)
+                    .as_bytes()
+            }
+            &OpCode::Message(npcid, ref mstr) => {
+                OpCodeBytes::stack()
+                    .cmd_u8(0x50)
+                    .arg_u32(npcid)
+                    .arg_string(mstr.clone())
+                    .as_bytes()
+            }
+            &OpCode::AddMsg(ref mstr) => {
+                OpCodeBytes::stack()
+                    .cmd_u8(0x5b)
+                    .arg_string(mstr.clone())
+                    .as_bytes()
+            }
+            &OpCode::MesEnd => {
+                OpCodeBytes::imed()
+                    .cmd_u8(0x5c)
+                    .as_bytes()
+            }
+            &OpCode::Set(reg) => {
+                OpCodeBytes::imed()
+                    .cmd_u8(0x10)
+                    .arg_reg(reg)
+                    .as_bytes()
+            }
+            &OpCode::Jmp(label) => {
+                OpCodeBytes::imed()
+                    .cmd_u8(0x28)
+                    .arg_u16(label)
+                    .as_bytes()
+            }
+            _ => panic!("cannot turn opcode to bytes: {:?}", self)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -576,7 +801,7 @@ impl RegisterPool {
 
 #[derive(Debug)]
 pub struct Assembler {
-    next_label_id: u32,
+    next_label_id: u16,
     //opcodes: Vec<OpCode>,
     //opcode_exprs: Vec<LabeledExpr>,
     //opcode_exprs: BTreeMap<u16, Vec<OpCode>>,
@@ -584,9 +809,9 @@ pub struct Assembler {
     opcodes: Vec<OpCode>,
     register_pool: RegisterPool,
     named_registers: HashMap<String, Register>,
-    npc_labels: HashMap<String, u32>,
+    npc_labels: HashMap<String, u16>,
     npc_ids: HashMap<String, f32>,
-    func_labels: HashMap<String, u32>,
+    func_labels: HashMap<String, u16>,
         
 }
 
@@ -624,7 +849,7 @@ impl Assembler {
         assembler
     }
 
-    fn get_label(&mut self) -> u32 {
+    fn get_label(&mut self) -> u16 {
         self.next_label_id += 1;
         self.next_label_id
     }
@@ -665,7 +890,7 @@ impl Assembler {
         pasm
     }
 
-    fn assemble_conditional(&mut self, expr: &PExpr, label: u32) -> Vec<OpCode> {
+    fn assemble_conditional(&mut self, expr: &PExpr, label: u16) -> Vec<OpCode> {
         match expr {
             &PExpr::Equal(ref args) => {
                 println!("eq, {:?}", args);
@@ -817,8 +1042,39 @@ impl Assembler {
     }
 
 
-    pub fn as_bytes(self) -> Vec<u8> {
-        Vec::new()
+    pub fn as_bytes(self) -> (Vec<u8>, Vec<u8>) {
+        let mut pasm = Vec::new();
+        let mut func_table = Vec::new();
+
+        let mut maxsize = 1;
+        for opcode in self.opcodes.iter() {
+            if let &OpCode::Label(label) = opcode {
+                maxsize += 1;
+            }
+        }
+
+        for _ in 0..maxsize {
+            func_table.push(0xffffffff);
+        }
+
+        
+        for opcode in self.opcodes.iter() {
+            if let &OpCode::Label(label) = opcode {
+                func_table[label as usize] = pasm.len();
+            }
+            else {
+                pasm.append(&mut opcode.as_bytes());
+            }
+        }
+
+        let mut func_table_bytes = Vec::new();
+        for func in func_table {
+            func_table_bytes.write_u32::<LittleEndian>(func as u32);
+        }
+        
+        
+        (pasm, func_table_bytes)
     }
+
 }
 

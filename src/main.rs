@@ -1,6 +1,7 @@
 
 //use tokenize_str;
 extern crate byteorder;
+extern crate encoding;
 
 mod types;
 mod monster;

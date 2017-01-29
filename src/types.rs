@@ -258,6 +258,7 @@ impl fmt::Display for PExpr {
 pub struct Quest {
     pub episode: u32,
 
+    // TODO: redundant names
     pub quest_name: String,
     pub quest_description: String,
     pub quest_description_long: String,

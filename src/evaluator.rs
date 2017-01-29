@@ -150,7 +150,7 @@ impl QuestBuilder {
     }*/
 
     fn eval_set_episode(&mut self, args: &Vec<PExpr>) -> Result<(), SyntaxError> {
-        self.episode = try!(eval_generic_integer(&args));
+        self.episode = try!(eval_generic_integer(&args)) -1;
         Ok(())
     }
 
