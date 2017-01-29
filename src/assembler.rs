@@ -1,7 +1,8 @@
 use encoding::{Encoding, EncoderTrap};
 use encoding::all::UTF_16LE;
+use encoding::all::UTF_16BE;
 use std::collections::{HashMap, BTreeMap};
-use byteorder::{LittleEndian, WriteBytesExt};
+use byteorder::{BigEndian, LittleEndian, WriteBytesExt};
 
 use types::*;
 use npc::*;
@@ -630,15 +631,16 @@ impl OpCodeBytes {
 
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        match self.cmd {
-            OpCodeCmd::u8(cmd) => bytes.write_u8(cmd),
-            OpCodeCmd::u16(cmd) => bytes.write_u16::<LittleEndian>(cmd),
-            OpCodeCmd::None => panic!("noopcode")
-        };
 
-        for arg in self.args.iter() {
-            match self.otype {
-                OpCodeType::Imediate => {
+        match self.otype {
+            OpCodeType::Imediate => {
+                match self.cmd {
+                    OpCodeCmd::u8(cmd) => bytes.write_u8(cmd),
+                    OpCodeCmd::u16(cmd) => bytes.write_u16::<BigEndian>(cmd), // ??? 
+                    OpCodeCmd::None => panic!("noopcode")
+                };
+
+                for arg in self.args.iter() {
                     match arg {
                         &OpCodeArg::u8(d) => bytes.write_u8(d),
                         &OpCodeArg::i8(d) => bytes.write_i8(d),
@@ -651,7 +653,9 @@ impl OpCodeBytes {
                         _ => panic!("gjkrjglrg")
                     };
                 }
-                OpCodeType::Stack => {
+            }
+            OpCodeType::Stack => {
+                for arg in self.args.iter() {
                     match arg {
                         &OpCodeArg::u8(d) => {
                             bytes.write_u8(0x4A);
@@ -688,12 +692,17 @@ impl OpCodeBytes {
                         &OpCodeArg::string(ref d) => {
                             bytes.write_u8(0x4E);
                             let mut utf16str = UTF_16LE.encode(d.as_str(), EncoderTrap::Ignore).unwrap();
-                            bytes.write_u16::<LittleEndian>(utf16str.len()as u16 +2);
                             bytes.append(&mut utf16str);
                             bytes.write_u16::<LittleEndian>(0);
                         }
                     };
                 }
+                
+                match self.cmd {
+                    OpCodeCmd::u8(cmd) => bytes.write_u8(cmd),
+                    OpCodeCmd::u16(cmd) => bytes.write_u16::<BigEndian>(cmd), // ??? 
+                    OpCodeCmd::None => panic!("noopcode")
+                };
             }
         }
         bytes
@@ -704,6 +713,11 @@ impl OpCodeBytes {
 impl OpCode {
     fn as_bytes(&self) -> Vec<u8> {
         match self {
+            &OpCode::Nop => {
+                OpCodeBytes::imed()
+                    .cmd_u8(0x00)
+                    .as_bytes()
+            }
             &OpCode::SetEpisode(ep) => {
                 OpCodeBytes::imed()
                     .cmd_u16(0xf8bc)
@@ -1042,7 +1056,7 @@ impl Assembler {
     }
 
 
-    pub fn as_bytes(self) -> (Vec<u8>, Vec<u8>) {
+    pub fn as_bytes(&mut self) -> (Vec<u8>, Vec<u8>) {
         let mut pasm = Vec::new();
         let mut func_table = Vec::new();
 
@@ -1058,6 +1072,7 @@ impl Assembler {
         }
 
         
+        self.opcodes.push(OpCode::Nop);
         for opcode in self.opcodes.iter() {
             if let &OpCode::Label(label) = opcode {
                 func_table[label as usize] = pasm.len();
@@ -1066,6 +1081,7 @@ impl Assembler {
                 pasm.append(&mut opcode.as_bytes());
             }
         }
+
 
         let mut func_table_bytes = Vec::new();
         for func in func_table {
