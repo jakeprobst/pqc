@@ -81,6 +81,7 @@ impl From<String> for NpcType {
             "npc2" => NpcType::Npc02,
             "npc3" => NpcType::Npc03,
             "npc-fonewm" => NpcType::Npc28FOnewm,
+            "npc-hopkins" => NpcType::Hopkins,
             _ => NpcType::None,
         }
     }
@@ -89,7 +90,8 @@ impl From<String> for NpcType {
 impl From<NpcType> for u16 {
     fn from(npc_type: NpcType) -> u16 {
         match npc_type {
-            NpcType::Npc28FOnewm => 28,
+            NpcType::Npc28FOnewm => 0x28,
+            NpcType::Hopkins => 0x31,
             _ => 0xff,
         }
     }

@@ -58,7 +58,7 @@
 # example npc dialogue
 (variable *talked-to-hopkins* false)
 
-(npc +hopkins+ (skin npc-fonewm) (floor p2) (section 20) (pos 90 80 78) (dir 76)
+(npc +hopkins+ (skin npc-hopkins) (floor p2) (section 20) (pos 90 80 78) (dir 76)
   (action
     (if (equal *talked-to-hopkins* true)
       (npc-say +hopkins+
