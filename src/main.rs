@@ -13,6 +13,7 @@ mod assembler;
 mod dotbin;
 mod dotdat;
 mod opcode;
+mod prs;
 
 use std::fmt;
 use std::cmp::min;
@@ -45,6 +46,7 @@ fn load_file(path: &str) -> String {
 }
 
 fn main() {
+
     //let script = "(if (equal asd 3 qw) (set asd 4) (set asd (+ 2 3))) (npc +urmom+ (floor p2) (npc-say \"hue hue hue\"))";
     //let script = "(if (equal asd 3) (set asd 4) (set asd (+ 2 \"a string\")))";
     /*let script = "(set-floors
@@ -87,6 +89,10 @@ fn main() {
                             printhex(&bin);
                             let mut f = File::create(env::args().nth(1).unwrap() +  &".bin").unwrap();
                             f.write_all(&bin);
+
+                            let prsbin = prs::compress(&bin);
+                            let mut fb = File::create(env::args().nth(1).unwrap() +  &".prs.bin").unwrap();
+                            fb.write_all(&prsbin);
                         }
                         Err(why) => {
                             println!("bin err: {:?}", why);
@@ -99,6 +105,10 @@ fn main() {
                             printhex(&dat);
                             let mut f = File::create(env::args().nth(1).unwrap() +  &".dat").unwrap();
                             f.write_all(&dat);
+                            
+                            let prsdat = prs::compress(&dat);
+                            let mut fb = File::create(env::args().nth(1).unwrap() +  &".prs.dat").unwrap();
+                            fb.write_all(&prsdat);
                         }
                         Err(why) => {
                             println!("bin err: {:?}", why);
