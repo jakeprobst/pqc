@@ -123,9 +123,9 @@ impl Prs {
     pub fn finalize(&mut self) {
         self.control_bit(0);
         self.control_bit(1);
-        //if self.bitpos != 0 {
-            //self.result[self.control_index] = (self.result[self.control_index] << self.bitpos) >> 8
-        //}
+        if self.bitpos != 0 {
+            self.result[self.control_index] = (((self.result[self.control_index] as u32) << self.bitpos) >> 8) as u8;
+        }
         self.static_data(0);
         self.static_data(0);
     }
