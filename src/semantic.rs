@@ -29,7 +29,13 @@ pub struct Symbol {
 
 
 
+pub type FloorId = u32;
 
+#[derive(Debug, Clone)]
+pub struct Floor {
+    id: FloorId,
+    ftype: FloorType,
+}
 
 #[derive(Debug)]
 pub enum Conditional {
@@ -83,7 +89,7 @@ pub enum Expr {
         episode: u8,
     },
     SetPlayerLocation {
-        floor: FloorType,
+        floor: Floor,
         p1: PlayerLocation,
         p2: PlayerLocation,
         p3: PlayerLocation,
@@ -166,16 +172,20 @@ fn map(map: &PExpr) -> Result<FloorType, SyntaxError> {
                       expect_type!(m[2], PExpr::Number)? as u32))
 }
 
-fn set_floor(args: &Vec<PExpr>, floors: &mut HashMap<String, FloorType>) -> Result<(), SyntaxError> {
+fn set_floor(args: &Vec<PExpr>, floors: &mut HashMap<String, Floor>) -> Result<(), SyntaxError> {
     expect_len!(args, 2);
 
     let id = expect_type!(args[0], PExpr::Identifier)?;
-    let floor = map(&args[1])?;
+    //let ftype = map(&args[1])?;
+    let floor = Floor {
+        id: floors.len() as u32,
+        ftype: map(&args[1])?,
+    };
     floors.insert(id, floor);
     Ok(())
 }
 
-fn floor(floor: &PExpr, floors: &HashMap<String, FloorType>) -> Result<FloorType, SyntaxError> {
+fn floor(floor: &PExpr, floors: &HashMap<String, Floor>) -> Result<Floor, SyntaxError> {
     let f = expect_type!(floor, PExpr::Floor)?;
     expect_len!(f, 1);
 
@@ -218,7 +228,7 @@ fn player_location(sec: &PExpr, pos: &PExpr, dir: &PExpr) -> Result<PlayerLocati
     })
 }
 
-fn set_player_location(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>) -> Result<Expr, SyntaxError> {
+fn set_player_location(args: &Vec<PExpr>, floors: &HashMap<String, Floor>) -> Result<Expr, SyntaxError> {
     expect_len!(args, 13);
 
     Ok(Expr::SetPlayerLocation {
@@ -236,7 +246,7 @@ fn set_player_location(args: &Vec<PExpr>, floors: &HashMap<String, FloorType>) -
 pub struct Semantic {
     pub expressions: Vec<PExpr>,
     //symbols: HashMap<String, Symbol>,
-    floors: HashMap<String, FloorType>,
+    floors: HashMap<String, Floor>,
 }
 
 
