@@ -1,11 +1,13 @@
 use types::*;
+use parser::PExpr;
 use monster::*;
 use object::*;
 use npc::*;
 use std::fmt::Write;
 use std::collections::HashMap;
+use semantic::SyntaxError;
 
-#[derive(Debug)]
+/*#[derive(Debug)]
 pub enum SyntaxError {
     UnknownFunction(String),
     InvalidFunction(String),
@@ -14,7 +16,7 @@ pub enum SyntaxError {
     UnknownMonster(String),
     UnknownFloor(String),
     WaveAlreadyDefined(String),
-}
+}*/
 
 // TODO: replace module_path with function_path once it exists
 macro_rules! expect_type {
@@ -46,7 +48,7 @@ fn eval_generic_string(args: &Vec<PExpr>) -> Result<String, SyntaxError> {
     expect_type!(args[0], PExpr::StringLiteral)
 }
 
-fn eval_generic_integer(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+fn eval_generic_integer(args: &Vec<PExpr>) -> Result<i32, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("generic-integer"), 1, args.len()));
     }
@@ -63,7 +65,7 @@ fn eval_map(args: &Vec<PExpr>) -> Result<FloorType, SyntaxError> {
     let subarea = try!(expect_type!(args[1], PExpr::Integer));
     let layout = try!(expect_type!(args[2], PExpr::Integer));
     
-    Ok(FloorType::new(area, subarea, layout))
+    Ok(FloorType::new(area, subarea as u32, layout as u32))
 }
 
 fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
@@ -78,19 +80,19 @@ fn eval_position(args: &Vec<PExpr>) -> Result<Point, SyntaxError> {
     Ok(Point{x:x as f32, y:y as f32, z:z as f32})
 }
 
-fn eval_direction(args: &Vec<PExpr>) -> Result<u32, SyntaxError> {
+fn eval_direction(args: &Vec<PExpr>) -> Result<i32, SyntaxError> {
     if args.len() != 1 {
         return Err(SyntaxError::InvalidNumberOfArguments(String::from("dir"), 1, args.len()));
     }
 
     let dir = try!(expect_type!(args[0], PExpr::Integer));
 
-    Ok((dir as f32 *(360.0/65535.0)) as u32)
+    Ok((dir as f32 *(360.0/65535.0)) as i32)
 }
 
 struct QuestBuilder {
     // quest data
-    episode: u32,
+    episode: i32,
     quest_name: String,
     quest_description: String,
     quest_description_long: String,
@@ -258,8 +260,8 @@ impl QuestBuilder {
 
         let mut npc_action = PExpr::Noop;
         let mut move_flag = 0;
-        let mut move_distance = 0;
-        let mut hide_register = 0; // ???
+        let mut move_distance: i32 = 0;
+        let mut hide_register: i32 = 0; // ???
 
         for arg in args.iter().skip(6) {
             match arg {
@@ -279,7 +281,7 @@ impl QuestBuilder {
             floor: floor,
             section: section as u16,
             pos: pos,
-            dir: dir,
+            dir: dir as u32,
             move_flag: move_flag,
             move_distance: move_distance as f32,
             hide_register: hide_register as f32,
@@ -325,7 +327,7 @@ impl QuestBuilder {
             id: id,
             wave_id: wave,
             section: section,
-            dir:dir,
+            dir: dir as u32,
             pos: pos,
             attributes: attributes,
         })
@@ -367,7 +369,7 @@ impl QuestBuilder {
             match arg {
                 &PExpr::Spawn(ref args) => monsters.push(try!(self.eval_spawn(&args, wave_id, section as u16))),
                 &PExpr::NextWave(ref args) => next.push(try!(self.eval_next_wave(&args))),
-                &PExpr::Delay(ref args) => delay = try!(eval_generic_integer(&args)),
+                &PExpr::Delay(ref args) => delay = try!(eval_generic_integer(&args)) as u32,
                 &PExpr::Unlock(ref args) => unlock.push(try!(eval_generic_integer(&args)) as u16),
                 _ => return Err(SyntaxError::InvalidArgument(String::from("wave"), arg.to_string(),
                                                              String::from("expected spawn, unlock, or delay")))
@@ -377,7 +379,7 @@ impl QuestBuilder {
         self.waves.push(Wave {
             id: wave_id,
             floor: floor_id.clone(),
-            section: section,
+            section: section as u32,
             monsters: monsters,
             next: next,
             unlock: unlock,
@@ -402,7 +404,7 @@ impl QuestBuilder {
 
             self.next_object_id += 1;
             self.objects.push(Object::new(ObjectType::SetPlayerLocation, self.next_object_id, floor_id, sec as u16, pos)
-                              .dir(dir)
+                              .dir(dir as u32)
                               .attribute(ObjectAttribute::Player(i as u32)));
         }
 
@@ -422,7 +424,7 @@ impl QuestBuilder {
 
     fn as_quest(self) -> Quest {
         Quest {
-            episode: self.episode,
+            episode: self.episode as u32,
             quest_name: self.quest_name,
             quest_description: self.quest_description,
             quest_description_long: self.quest_description_long,
@@ -464,3 +466,5 @@ pub fn eval_quest(expr: Vec<PExpr>) -> Result<Quest, SyntaxError> {
 
     Ok(qbuilder.as_quest())
 }
+
+

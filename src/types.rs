@@ -3,6 +3,7 @@ use monster::*;
 use object::*;
 use npc::*;
 use std::collections::HashMap;
+use parser::PExpr;
 
 
 #[derive(Debug, Clone, Copy)]
@@ -11,6 +12,11 @@ pub struct Point {
     pub y: f32,
     pub z: f32,
 }
+
+pub type Section = u32;
+/*pub struct Section {
+    
+}*/
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Copy)]
 pub enum FloorType {
@@ -114,7 +120,7 @@ pub struct Wave {
 pub enum VariableValue {
     None,
     Boolean(bool),
-    Integer(u32),
+    Integer(i32),
     Float(f32),
     String(String),
 }
@@ -139,86 +145,8 @@ pub enum Function {
 }
 
 
-#[derive(Debug, Clone)]
-pub enum PExpr {
-    Noop,
-    Integer(u32),
-    Float(f32),
-    Boolean(bool),
-    Identifier(String),
-    StringLiteral(String),
 
-    // quest meta
-    QuestName(Vec<PExpr>),
-    QuestDescription(Vec<PExpr>),
-    QuestDescriptionLong(Vec<PExpr>),
-    
-    // general operations
-    Block(Vec<PExpr>),
-    Cond(Vec<PExpr>),
-    Equal(Vec<PExpr>),
-    If(Vec<PExpr>),
-    Set(Vec<PExpr>),
-    Variable(Vec<PExpr>),
-
-    // math
-    Plus(Vec<PExpr>),
-
-    // general
-    Floor(Vec<PExpr>),
-    Map(Vec<PExpr>),
-    Section(Vec<PExpr>),
-    Position(Vec<PExpr>),
-    Direction(Vec<PExpr>),
-
-    // general meta pso
-    GetDifficulty(Vec<PExpr>),
-    OnFloorLoad(Vec<PExpr>),
-    SetPlayerLocation(Vec<PExpr>),
-    QuestSuccess(Vec<PExpr>),
-    QuestFailure(Vec<PExpr>),
-    SetEpisode(Vec<PExpr>),
-    SetFloor(Vec<PExpr>),
-
-
-    // pso stuff?
-    GiveMeseta(Vec<PExpr>),
-    PlayBgm(Vec<PExpr>),
-    WindowMessage(Vec<PExpr>),
-    
-    // npcs
-    Npc(Vec<PExpr>),
-    //NpcAction(Vec<PExpr>),
-    NpcSay(Vec<PExpr>),
-    Skin(Vec<PExpr>),
-
-    // objects
-    CollisionEvent(Vec<PExpr>),
-
-    Radius(Vec<PExpr>),
-    Action(Vec<PExpr>),
-    
-    // doors
-    Door(Vec<PExpr>),
-    Type(Vec<PExpr>),
-
-    // wave
-    Wave(Vec<PExpr>),
-    Delay(Vec<PExpr>),
-    NextWave(Vec<PExpr>),
-    Spawn(Vec<PExpr>),
-    Unlock(Vec<PExpr>),
-    StartWave(Vec<PExpr>),
-
-    // monster attributes
-    IdleDistance(Vec<PExpr>),
-
-    // objects
-    Object(Vec<PExpr>),
-
-}
-
-macro_rules! print_expr {
+/*macro_rules! print_expr {
     ($f:expr, $func:expr, $args:expr) => {
         {
             write!($f, "(");
@@ -229,29 +157,8 @@ macro_rules! print_expr {
             write!($f, ")")
         }
     }
-}
+}*/
 
-
-impl fmt::Display for PExpr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-        /*match self {
-            &PExpr::If(ref args) => print_expr!(f, "if", args),
-            &PExpr::Equal(ref args) => print_expr!(f, "equal", args),
-            &PExpr::Set(ref args) => print_expr!(f, "set", args),
-            &PExpr::Plus(ref args) => print_expr!(f, "+", args),
-            &PExpr::SetEpisode(ref args) => print_expr!(f, "set-episode", args),
-            
-            &PExpr::Integer(ref args) => {
-                write!(f, "{}", args)
-            },
-            &PExpr::Identifier(ref args) => {
-                write!(f, "{}", args)
-            },
-            _ => write!(f, "[[!add {:?} to fmt::Display for PExpr!]]", self),
-        }*/
-    }
-}
 
 
 #[derive(Debug)]

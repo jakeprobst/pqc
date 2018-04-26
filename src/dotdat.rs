@@ -7,7 +7,7 @@ use types::*;
 use monster::*;
 use npc::*;
 use object::*;
-use evaluator::*;
+//use evaluator::*;
 
 
 const OBJECT_HEADER_ID: u32 = 1;

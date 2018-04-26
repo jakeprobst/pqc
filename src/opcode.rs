@@ -1,3 +1,6 @@
+#[allow(unused_must_use)]
+
+
 use encoding::{Encoding, EncoderTrap};
 use encoding::all::UTF_16LE;
 use encoding::all::UTF_16BE;
@@ -53,25 +56,25 @@ pub enum OpCode {
     //JmpOn,
     //JmpOff,
     JmpEq(Register, Register, FunctionId),
-    JmpIEq(Register, u32, FunctionId),
+    JmpIEq(Register, i32, FunctionId),
     JmpNotEq(Register, Register, FunctionId),
-    JmpINotEq(Register, u32, FunctionId),
+    JmpINotEq(Register, i32, FunctionId),
     UJmpGt(Register, Register, FunctionId),
     UJmpIGt(Register, u32, FunctionId),
     JmpGt(Register, Register, FunctionId),
-    JmpIGt(Register, u32, FunctionId),
+    JmpIGt(Register, i32, FunctionId),
     UJmpLt(Register, Register, FunctionId),
     UJmpILt(Register, u32, FunctionId),
     JmpLt(Register, Register, FunctionId),
-    JmpILt(Register, u32, FunctionId),
+    JmpILt(Register, i32, FunctionId),
     UJmpGtEq(Register, Register, FunctionId),
     UJmpIGtEq(Register, u32, FunctionId),
     JmpGtEq(Register, Register, FunctionId),
-    JmpIGtEq(Register, u32, FunctionId),
+    JmpIGtEq(Register, i32, FunctionId),
     UJmpLtEq(Register, Register, FunctionId),
     UJmpILtEq(Register, u32, FunctionId),
-    JmpLtEq,
-    JmpILtEq,
+    JmpLtEq(Register, i32, FunctionId),
+    JmpILtEq(Register, i32, FunctionId),
     //SwitchJmp,
     //SwitchCall,
     StackPush(Register),
@@ -546,6 +549,8 @@ enum OpCodeType {
     Imediate,
     Stack,
 }
+
+// TODO: split this into 2 types, one that handles cmd and one that handles args
 
 struct OpCodeBytes {
     cmd: OpCodeCmd,

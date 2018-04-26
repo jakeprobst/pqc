@@ -9,7 +9,7 @@ enum Match {
 }
 
 fn vec_eq(v: &Vec<u8>, a: usize, b: usize, len: usize) -> bool {
-    if (v.len() < a + len || v.len() < b + len) {
+    if v.len() < a + len || v.len() < b + len {
         return false;
     }
     
@@ -186,12 +186,12 @@ pub fn compress(data: &Vec<u8>) -> Vec<u8> {
 
     //println!("{:#?}", matches);
 
-    for m in matches.iter() {
-        match m {
-            &Match::Character(ch) => {
+    for m in &matches {
+        match *m {
+            Match::Character(ch) => {
                 prs.raw_byte(ch);
             }
-            &Match::Repetition(back, copy) => {
+            Match::Repetition(back, copy) => {
                 prs.copy_length(back, copy);
             }
         }

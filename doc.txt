@@ -29,23 +29,25 @@
   (section 2) (pos 130 140 150) (dir 0))
 
 # executes on quest completion
+# builtin variables start with $
+# builtin constants start with @
 (quest-success
-  (if (equal (get-difficulty) diff-normal)
+  (if (equal $difficulty @normal)
     (block
       (window-message "ez game")
       (play-bgm 1)
       (give-meseta 1000)))
-  (if (equal (get-difficulty) diff-hard)
+  (if (equal $difficulty @hard)
     (block
       (window-message "ez game")
       (play-bgm 1)
       (give-meseta 2000)))
-  (if (equal (get-difficulty) diff-very-hard)
+  (if (equal $difficulty @very-hard)
     (block
       (window-message "ez game")
       (play-bgm 1)
       (give-meseta 4000)))
-  (if (equal (get-difficulty) diff-ultimate)
+  (if (equal $difficulty @ultimate)
     (block
       (window-message "ez game")
       (play-bgm 1)

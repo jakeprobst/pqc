@@ -1,3 +1,7 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
+#![allow(dead_code)]
+#![allow(unused_must_use)]
 
 //use tokenize_str;
 extern crate byteorder;
@@ -8,7 +12,12 @@ mod monster;
 mod parser;
 mod npc;
 mod object;
-mod evaluator;
+mod questbuilder;
+//mod evaluator;
+mod tokenizer;
+mod semantic;
+//mod evaluator1;
+//mod evaluator2;
 mod assembler;
 mod dotbin;
 mod dotdat;
@@ -21,11 +30,17 @@ use std::env;
 use std::io::prelude::*;
 use std::fs::File;
 
+
+use questbuilder::{QuestBuilder, QuestError};
+//use tokenizer::Tokenizer;
+//use parser::Parser;
+//use evaluator::Evaluator;
+
 /*fn load_file(path: &str) -> String {
     
 }*/
 
-fn printhex(data: &Vec<u8>) {
+fn printhex(data: &[u8]) {
     for line in 0..(data.len()/16)+1 {
         print!("{:08X}  ", line*16);
         for i in 0..min(data.len() - line * 16, 16) {
@@ -36,13 +51,44 @@ fn printhex(data: &Vec<u8>) {
 }
 
 fn load_file(path: &str) -> String {
-    println!("path: {}", path);
+    //println!("path: {}", path);
     let mut f = File::open(path).unwrap();
     let mut s = String::new();
 
     f.read_to_string(&mut s);
 
     return s;
+}
+
+
+
+
+fn make_quest(script: &str) -> Result<(), QuestError> {
+
+
+    
+    let quest = QuestBuilder::new(script.into())
+        .tokenize()?
+        .parse()?
+        .semantic()?;
+    
+        
+    println!("{:#?}", quest);
+    
+    
+    
+    
+    //let expr = parser::parse_script_to_expr(script)?;
+    //let tok = parser::tokenize_script(script);
+    //let expr = parser::generate_ast(&tok)?;
+    //println!("{:#?}", expr);
+    //let eval = evaluator::eval(expr)?;
+    //println!("{:#?}", eval);
+    //let p2 = evaluator2::eval(p1)?;
+    //let p3 = evaluator3::eval(p2)?;
+    //let (bin, dat) = build::build(p2)?;
+
+    Ok(())
 }
 
 fn main() {
@@ -71,7 +117,7 @@ fn main() {
   (delay 30))
     ";*/
     let script = load_file(env::args().nth(1).unwrap().as_str());
-    println!("script: {}", script);
+    //println!("script: {}", script);
         
     //let expr = try!(parser::parse_script_to_expr(script));
     /*let tokens = parser::tokenize_str(script);
@@ -79,7 +125,18 @@ fn main() {
      */
 
     // cant try! in main
-    match parser::parse_script_to_expr(script.as_str()) {
+
+    //let (bin, dat) = compile_quest(script.as_str());
+    match make_quest(script.as_str()) {
+        Ok(_) => {},
+        Err(e) => {
+            println!("err: {:?}", e);
+            return;
+        }
+    }
+    
+    
+    /*match parser::parse_script_to_expr(script.as_str()) {
         Ok(expr) => {
             match evaluator::eval_quest(expr) {
                 Ok(mut quest) => {
@@ -87,11 +144,11 @@ fn main() {
                     match dotbin::generate_bin(&mut quest) {
                         Ok(bin) => {
                             printhex(&bin);
-                            let mut f = File::create(env::args().nth(1).unwrap() +  &".bin").unwrap();
+                            let mut f = File::create(env::args().nth(1).unwrap() + ".bin").unwrap();
                             f.write_all(&bin);
 
                             let prsbin = prs::compress(&bin);
-                            let mut fb = File::create(env::args().nth(1).unwrap() +  &".prs.bin").unwrap();
+                            let mut fb = File::create(env::args().nth(1).unwrap() + ".prs.bin").unwrap();
                             fb.write_all(&prsbin);
                         }
                         Err(why) => {
@@ -103,11 +160,11 @@ fn main() {
                     match dotdat::generate_dat(&quest) {
                         Ok(dat) => {
                             printhex(&dat);
-                            let mut f = File::create(env::args().nth(1).unwrap() +  &".dat").unwrap();
+                            let mut f = File::create(env::args().nth(1).unwrap() +  ".dat").unwrap();
                             f.write_all(&dat);
                             
                             let prsdat = prs::compress(&dat);
-                            let mut fb = File::create(env::args().nth(1).unwrap() +  &".prs.dat").unwrap();
+                            let mut fb = File::create(env::args().nth(1).unwrap() +  ".prs.dat").unwrap();
                             fb.write_all(&prsdat);
                         }
                         Err(why) => {
@@ -125,7 +182,7 @@ fn main() {
             println!("parser err: {:?}", why);
             
         }
-    }
+    }*/
     
 }
 

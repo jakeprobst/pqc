@@ -1,5 +1,96 @@
 use types::*;
-use std::ops::Fn;
+//use std::ops::Fn;
+use std;
+use semantic::Semantic;
+
+#[derive(Debug, Clone)]
+pub enum PExpr {
+    Noop,
+    //Integer(i32),
+    //Float(f32),
+    Number(f32),
+    Boolean(bool),
+    Identifier(String),
+    StringLiteral(String),
+
+    // quest meta
+    QuestName(Vec<PExpr>),
+    QuestDescription(Vec<PExpr>),
+    QuestDescriptionLong(Vec<PExpr>),
+    
+    // general operations
+    Block(Vec<PExpr>),
+    Cond(Vec<PExpr>),
+    Equal(Vec<PExpr>),
+    If(Vec<PExpr>),
+    Set(Vec<PExpr>),
+    Variable(Vec<PExpr>),
+    Let(Vec<PExpr>),
+    Var(Vec<PExpr>),
+
+    // math
+    Plus(Vec<PExpr>),
+
+    // general
+    Floor(Vec<PExpr>),
+    Map(Vec<PExpr>),
+    Section(Vec<PExpr>),
+    Position(Vec<PExpr>),
+    Direction(Vec<PExpr>),
+
+    // general meta pso
+    GetDifficulty(Vec<PExpr>),
+    OnFloorLoad(Vec<PExpr>),
+    SetPlayerLocation(Vec<PExpr>),
+    QuestSuccess(Vec<PExpr>),
+    QuestFailure(Vec<PExpr>),
+    SetEpisode(Vec<PExpr>),
+    SetFloor(Vec<PExpr>),
+
+
+    // pso stuff?
+    GiveMeseta(Vec<PExpr>),
+    PlayBgm(Vec<PExpr>),
+    WindowMessage(Vec<PExpr>),
+    
+    // npcs
+    Npc(Vec<PExpr>),
+    //NpcAction(Vec<PExpr>),
+    NpcSay(Vec<PExpr>),
+    Skin(Vec<PExpr>),
+
+    // objects
+    CollisionEvent(Vec<PExpr>),
+
+    Radius(Vec<PExpr>),
+    Action(Vec<PExpr>),
+    
+    // doors
+    Door(Vec<PExpr>),
+    Type(Vec<PExpr>),
+
+    // wave
+    Wave(Vec<PExpr>),
+    Delay(Vec<PExpr>),
+    NextWave(Vec<PExpr>),
+    Spawn(Vec<PExpr>),
+    Unlock(Vec<PExpr>),
+    StartWave(Vec<PExpr>),
+
+    // monster attributes
+    IdleDistance(Vec<PExpr>),
+
+    // objects
+    Object(Vec<PExpr>),
+
+}
+
+
+impl std::fmt::Display for PExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
 
 #[derive(Debug)]
@@ -15,51 +106,9 @@ pub enum ASTree {
     Value(String),
 }
 
-pub fn tokenize_script(script: &str) -> Vec<String> {
-    let mut result = Vec::new();
 
-    let mut current = String::new();
-    let mut in_quote = false;
-    let mut in_comment = false;
-    for c in script.chars() {
-        if in_quote {
-            current.push(c);
-            if c == '"' {
-                in_quote = false;
-            }
-        }
-        else if in_comment {
-            if c == '\n' {
-                in_comment = false;
-            }
-        }
-        else if c == '#' {
-            in_comment = true;
-        }
-        else if c == '(' || c == ')' {
-            if current.len() > 0 {
-                result.push(current);
-                current = String::new();
-            }
-            result.push(c.to_string());
-        }
-        else if c.is_whitespace() {
-            if current.len() > 0 {
-                result.push(current);
-                current = String::new();
-            }
-        }
-        else if c == '"' {
-            current.push(c);
-            in_quote = true;
-        }
-        else {
-            current.push(c);
-        }
-    }
 
-    return result;
-}
+
 
 // TODO: figure out a proper name for this function
 fn split_into_ast_blocks(tokens: &Vec<String>) -> Result<Vec<Vec<String>>, ParseError> {
@@ -91,7 +140,7 @@ fn split_into_ast_blocks(tokens: &Vec<String>) -> Result<Vec<Vec<String>>, Parse
     return Ok(result);
 }
 
-fn generate_ast(tokens: &Vec<String>) -> Result<ASTree, ParseError> {
+pub fn generate_ast(tokens: &Vec<String>) -> Result<ASTree, ParseError> {
     let ref function = tokens[1];
     let childblocks = try!(split_into_ast_blocks(&tokens[2..tokens.len()-1].to_vec()));
     let mut childast = Vec::new();
@@ -161,6 +210,8 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
                 ["set-episode", PExpr::SetEpisode],
                 ["set-floor", PExpr::SetFloor],
                 ["variable", PExpr::Variable],
+                ["let", PExpr::Variable],
+                ["var", PExpr::Variable],
 
                 // pso stuff
                 ["give-meseta", PExpr::GiveMeseta],
@@ -209,10 +260,16 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
             })
         }
         &ASTree::Value(ref val) => {
-            if let Ok(i) = val.parse::<u32>() {
+            /*if let Ok(i) = val.parse::<i32>() {
                 Ok(PExpr::Integer(i))
+            }*/
+            if let Ok(i) = val.parse::<f32>() {
+                Ok(PExpr::Number(i))
             }
             else if val.starts_with('"') {
+                Ok(PExpr::StringLiteral(val.chars().skip(1).take(val.len()-2).collect()))
+            }
+            else if val.starts_with('@') {
                 Ok(PExpr::StringLiteral(val.chars().skip(1).take(val.len()-2).collect()))
             }
             else if val == "true" {
@@ -228,24 +285,41 @@ fn eval_ast(ast: &ASTree)-> Result<PExpr, ParseError> {
     }
 }
 
-pub fn eval_tokenized_expr(tokens: Vec<String>) -> Result<Vec<PExpr>, ParseError> {
+fn eval_tokenized_expr(tokens: Vec<String>) -> Result<Vec<PExpr>, ParseError> {
     let mut result = Vec::new();
 
-    let astblocks = try!(split_into_ast_blocks(&tokens));
+    let astblocks = split_into_ast_blocks(&tokens)?;
     
     for ast in astblocks {
-        let astree = try!(generate_ast(&ast));
-        println!("astree: {:?}", astree);
-        result.push(try!(eval_ast(&astree)));
+        let astree = generate_ast(&ast)?;
+        result.push(eval_ast(&astree)?);
     }
     
     return Ok(result);
 }
 
 
-pub fn parse_script_to_expr(script: &str) -> Result<Vec<PExpr>, ParseError> {
-    
-    let tokens = tokenize_script(script);
-    Ok(try!(eval_tokenized_expr(tokens)))
+
+
+
+
+
+
+
+
+pub struct Parser {
+    pub tokens: Vec<String>,
 }
 
+
+impl Parser {
+    pub fn new(tokens: Vec<String>) -> Parser {
+        Parser {
+            tokens: tokens
+        }
+    }
+    
+    pub fn parse(self) -> Result<Semantic, ParseError> {
+        Ok(Semantic::new(eval_tokenized_expr(self.tokens)?))
+    }
+}

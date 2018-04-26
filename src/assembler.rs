@@ -1,12 +1,12 @@
 use encoding::{Encoding, EncoderTrap};
 use encoding::all::UTF_16LE;
-use encoding::all::UTF_16BE;
 use std::collections::{HashMap, BTreeMap};
 use byteorder::{BigEndian, LittleEndian, WriteBytesExt};
 
 use types::*;
 use npc::*;
 use opcode::*;
+use parser::PExpr;
 
 #[derive(Debug)]
 pub enum AssemblerError {
@@ -42,11 +42,17 @@ impl RegisterPool {
 
     fn take(&mut self) -> Register {
         self.registers.pop().unwrap() // oh god if we use more than 256 registers at once...
-    }
+   }
 
     fn release(&mut self, reg: Register) {
         self.registers.push(reg)
     }
+}
+
+
+enum ConditionalOperand {
+    Register(Register),
+    ImmediateS(i32),
 }
 
 #[derive(Debug)]
@@ -89,7 +95,6 @@ impl Assembler {
         
         assembler.assemble_npcs(&mut quest.npcs);
 
-
         assembler
     }
 
@@ -109,16 +114,13 @@ impl Assembler {
         //code.push(OpCode::SetEpisode(quest.episode));
         self.opcodes.push(OpCode::Label(0));
         self.opcodes.push(OpCode::SetEpisode(quest.episode));
-        
-        // more stuff here!
 
-        // set variable defaults
+        // TODO: quest success
+        // TODO: set_floor_handler
+        // TODO: map_designate
+        // TODO: set variable defaults
         
-        /*self.opcode_exprs.push(LabeledExpr {
-            label: 0.,
-            opcodes: code,
-    });*/
-
+        self.opcodes.push(OpCode::Ret);
         
         self.opcodes.push(OpCode::Label(1));
         self.opcodes.push(OpCode::Ret);
@@ -134,7 +136,54 @@ impl Assembler {
         pasm
     }
 
+
+    /*fn assemble_conditional_operand(&mut self, expr: &PExpr) -> (ConditionalOperand, Option<Vec<OpCode>>) {
+        match expr {
+            &PExpr::Identifier(var) =>
+                (ConditionalOperand::Register(self.named_registers.get(var).unwrap()), None),
+            &PExpr::Integer(val) =>
+                (ConditionalOperand::ImmediateS(val), None),
+            &PExpr::Boolean(val) =>
+                (ConditionalOperand::ImmediateS(val as i32), None),
+            &PExpr::Float(val) =>
+                (ConditionalOperand::ImmediateF(val), None)
+            &PExpr::GetDifficulty(ref args) => {
+                let mut code = Vec::new();
+                let reg = self.register_pool.take();
+                code.push(OpCode::GetDifficultyLevel2(reg));
+                (ConditionalOperand::Register(), code)
+            }
+                
+            _ => panic!("no match")
+        }
+
+        
+    }*/
+
     fn assemble_conditional(&mut self, expr: &PExpr, label: u16) -> Vec<OpCode> {
+        //let (val1, code1) = self.assemble_conditional_operand(&args[0]);
+        //let (val2, code2) = self.assemble_conditional_operand(&args[1]);
+
+        /*let result = Vec::new();
+        
+        match expr {
+            // PExpr::Identifier(ref arg)
+            &PExpr::Equal(ref args) => {
+                let (val1, code1) = self.assemble_conditional_operand(&args[0]);
+                let (val2, code2) = self.assemble_conditional_operand(&args[1]);
+
+                match (val1, val2) {
+                    (ConditionalOperand::Register(reg1), ConditionalOperand::Register(reg2)) => {
+                        vec![OpCode::JmpEq(reg1, reg2, label)]
+                    }
+                    
+                    _ => panic!("no match")
+                }
+            }
+            _ => panic!("no match")
+        }*/
+        
+        
         match expr {
             &PExpr::Equal(ref args) => {
                 println!("eq, {:?}", args);
@@ -144,20 +193,20 @@ impl Assembler {
                                            *self.named_registers.get(var2).unwrap(),
                                            label)]
                     }
-                    (&PExpr::Identifier(ref var), &PExpr::Integer(ref val)) => {
+                    (&PExpr::Identifier(ref var), &PExpr::Number(ref val)) => {
                         vec![OpCode::JmpIEq(*self.named_registers.get(var).unwrap(),
-                                           *val,
+                                           *val as i32,
                                            label)]
                     }
                     (&PExpr::Identifier(ref var), &PExpr::Boolean(ref val)) => {
                         vec![OpCode::JmpIEq(*self.named_registers.get(var).unwrap(),
-                                           *val as u32,
+                                           *val as i32,
                                            label)]
                     }
-                    _ => Vec::new()
+                    _ => panic!()
                 }
             }
-            _ => Vec::new()
+            _ => panic!()
         }
     }
     
@@ -248,6 +297,7 @@ impl Assembler {
             &PExpr::If(ref e) => self.assemble_if(&e),
             &PExpr::NpcSay(ref e) => self.assemble_npc_say(&e),
             &PExpr::Set(ref e) => self.assemble_set(&e),
+            
             _ => Vec::new(),
         }
         
