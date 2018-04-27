@@ -15,7 +15,12 @@ mod object;
 mod questbuilder;
 //mod evaluator;
 mod tokenizer;
+#[macro_use]
 mod semantic;
+#[macro_use]
+mod codeblock;
+mod conditional;
+mod operand;
 //mod evaluator1;
 //mod evaluator2;
 mod assembler;

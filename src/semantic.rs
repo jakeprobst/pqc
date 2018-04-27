@@ -2,7 +2,10 @@
 
 
 use parser::PExpr;
+use codeblock::{CodeExpr, CodeSyntaxError, code_expr};
 use types::{FloorType, Section};
+
+use std;
 use std::collections::HashMap;
 
 
@@ -16,6 +19,14 @@ pub enum SyntaxError {
     UnknownMonster(String),
     UnknownFloor(String),
     WaveAlreadyDefined(String),
+    Code(CodeSyntaxError),
+}
+
+
+impl std::convert::From<CodeSyntaxError> for SyntaxError {
+    fn from(err: CodeSyntaxError) -> SyntaxError {
+        SyntaxError::Code(err)
+    }
 }
 
 /*pub struct SymbolValue {
@@ -37,9 +48,6 @@ pub struct Floor {
     ftype: FloorType,
 }
 
-#[derive(Debug)]
-pub enum Conditional {
-}
 
 #[derive(Debug)]
 pub struct Position {
@@ -94,10 +102,13 @@ pub enum Expr {
         p2: PlayerLocation,
         p3: PlayerLocation,
         p4: PlayerLocation,
-    }
+    },
+    
+    QuestSuccess {
+        code: CodeExpr,
+    },
     
 }
-
 
 macro_rules! expect_type {
     ($arg:expr, $t:path) => {
@@ -122,7 +133,7 @@ macro_rules! expect_variable {
 }
 
 
-macro_rules! expect_len {
+macro_rules! sem_expect_len {
     ($arg:expr, $len:expr) => {
         if $arg.len() != $len {
             return Err(SyntaxError::InvalidNumberOfArguments(format!("{:?}", $arg), $len, $arg.len()));
@@ -132,7 +143,7 @@ macro_rules! expect_len {
 
 
 fn quest_name(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
-    expect_len!(args, 1);
+    sem_expect_len!(args, 1);
     
     Ok(Expr::QuestName {
         name: expect_type!(args[0], PExpr::StringLiteral)?
@@ -140,7 +151,7 @@ fn quest_name(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
 }
 
 fn quest_description(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
-    expect_len!(args, 1);
+    sem_expect_len!(args, 1);
     
     Ok(Expr::QuestDescription {
         desc: expect_type!(args[0], PExpr::StringLiteral)?
@@ -148,7 +159,7 @@ fn quest_description(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
 }
 
 fn quest_description_long(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
-    expect_len!(args, 1);
+    sem_expect_len!(args, 1);
     
     Ok(Expr::QuestDescriptionLong {
         desc: expect_type!(args[0], PExpr::StringLiteral)?
@@ -156,7 +167,7 @@ fn quest_description_long(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
 }
 
 fn set_episode(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
-    expect_len!(args, 1);
+    sem_expect_len!(args, 1);
 
     Ok(Expr::SetEpisode {
         episode: expect_type!(args[0], PExpr::Number)? as u8
@@ -165,7 +176,7 @@ fn set_episode(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
 
 fn map(map: &PExpr) -> Result<FloorType, SyntaxError> {
     let m = expect_type!(map, PExpr::Map)?;
-    expect_len!(m, 3);
+    sem_expect_len!(m, 3);
 
     Ok(FloorType::new(expect_type!(m[0], PExpr::Identifier)?,
                       expect_type!(m[1], PExpr::Number)? as u32,
@@ -173,7 +184,7 @@ fn map(map: &PExpr) -> Result<FloorType, SyntaxError> {
 }
 
 fn set_floor(args: &Vec<PExpr>, floors: &mut HashMap<String, Floor>) -> Result<(), SyntaxError> {
-    expect_len!(args, 2);
+    sem_expect_len!(args, 2);
 
     let id = expect_type!(args[0], PExpr::Identifier)?;
     //let ftype = map(&args[1])?;
@@ -187,14 +198,14 @@ fn set_floor(args: &Vec<PExpr>, floors: &mut HashMap<String, Floor>) -> Result<(
 
 fn floor(floor: &PExpr, floors: &HashMap<String, Floor>) -> Result<Floor, SyntaxError> {
     let f = expect_type!(floor, PExpr::Floor)?;
-    expect_len!(f, 1);
+    sem_expect_len!(f, 1);
 
     Ok(expect_variable!(floors, expect_type!(f[0], PExpr::Identifier)?)?)
 }
 
 fn section(sec: &PExpr) -> Result<Section, SyntaxError> {
     let section = expect_type!(sec, PExpr::Section)?;
-    expect_len!(section, 1);
+    sem_expect_len!(section, 1);
 
     Ok(expect_type!(section[0], PExpr::Number)? as u32)
     
@@ -202,7 +213,7 @@ fn section(sec: &PExpr) -> Result<Section, SyntaxError> {
 
 fn position(pos : &PExpr) -> Result<Position, SyntaxError> {
     let p = expect_type!(pos, PExpr::Position)?;
-    expect_len!(p, 3);
+    sem_expect_len!(p, 3);
     
     Ok(Position {
         x: expect_type!(p[0], PExpr::Number)?,
@@ -213,7 +224,7 @@ fn position(pos : &PExpr) -> Result<Position, SyntaxError> {
 
 fn direction(dir : &PExpr) -> Result<Direction, SyntaxError> {
     let d = expect_type!(dir, PExpr::Direction)?;
-    expect_len!(d, 1);
+    sem_expect_len!(d, 1);
 
     Ok(Direction::deg(expect_type!(d[0], PExpr::Number)? as u32))
 }
@@ -229,7 +240,7 @@ fn player_location(sec: &PExpr, pos: &PExpr, dir: &PExpr) -> Result<PlayerLocati
 }
 
 fn set_player_location(args: &Vec<PExpr>, floors: &HashMap<String, Floor>) -> Result<Expr, SyntaxError> {
-    expect_len!(args, 13);
+    sem_expect_len!(args, 13);
 
     Ok(Expr::SetPlayerLocation {
         floor: floor(&args[0], floors)?,
@@ -240,6 +251,13 @@ fn set_player_location(args: &Vec<PExpr>, floors: &HashMap<String, Floor>) -> Re
     })
 }
 
+fn quest_success(args: &Vec<PExpr>) -> Result<Expr, SyntaxError> {
+    sem_expect_len!(args, 1);
+
+    Ok(Expr::QuestSuccess {
+        code: code_expr(&args[0])?,
+    })
+}
 
 
 
@@ -261,6 +279,7 @@ impl Semantic {
     
     pub fn semantic(mut self) -> Result<Vec<Expr>, SyntaxError> {
         let mut semexp = Vec::new();
+        println!("{:#?}", self.expressions);
         
         for ex in self.expressions {
             match ex {
@@ -272,6 +291,8 @@ impl Semantic {
                 PExpr::SetFloor(args) => set_floor(&args, &mut self.floors)?,
                 
                 PExpr::SetPlayerLocation(args) => semexp.push(set_player_location(&args, &self.floors)?),
+
+                PExpr::QuestSuccess(args) => semexp.push(quest_success(&args)?),
                 _ => {}
                 //_ => {return Err(SyntaxError::InvalidFunction(ex.to_string()))}
             }
